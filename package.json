@@ -10,6 +10,7 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "vitest": "^4.1.5"
   }
 }
