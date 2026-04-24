@@ -178,11 +178,14 @@ describe("formatResult", () => {
     it("includes all sections in canonical order", () => {
       expect(DEFAULT_PROFILE.sections).toEqual([
         "summary",
+        "elevation_profile",
+        "weather",
         "segments",
         "km_splits",
         "zones",
         "dynamics",
         "anomalies",
+        "metadata",
       ]);
     });
 
@@ -190,22 +193,22 @@ describe("formatResult", () => {
       expect(DEFAULT_PROFILE.columns).toBe("all");
     });
 
-    it("does not skip segments for single lap", () => {
-      expect(DEFAULT_PROFILE.skipSegmentsIfSingleLap).toBe(false);
+    it("skips segments for single lap by default", () => {
+      expect(DEFAULT_PROFILE.skipSegmentsIfSingleLap).toBe(true);
     });
   });
 
   // ─── MARKDOWN ─────────────────────────────────────────────────────────────
 
   describe("markdown format", () => {
-    it("## Metadata appears first, before ## Run Summary", () => {
+    it("## Run Summary appears before ## Metadata (metadata is last)", () => {
       const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
-      const metaIdx = output.indexOf("## Metadata");
       const summaryIdx = output.indexOf("## Run Summary");
-      expect(metaIdx).toBeGreaterThanOrEqual(0);
-      expect(summaryIdx).toBeGreaterThan(metaIdx);
-      // Must be the very first content
-      expect(output.trimStart().startsWith("## Metadata")).toBe(true);
+      const metaIdx = output.indexOf("## Metadata");
+      expect(summaryIdx).toBeGreaterThanOrEqual(0);
+      expect(metaIdx).toBeGreaterThan(summaryIdx);
+      // Summary must be the very first content
+      expect(output.trimStart().startsWith("## Run Summary")).toBe(true);
     });
 
     it("metadata renders version, downsample=none, anomalies=included", () => {
@@ -222,6 +225,14 @@ describe("formatResult", () => {
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).toContain("5s");
       expect(output).toContain("excluded");
+    });
+
+    it("metadata renders File sample rate when fileSampleRate is set", () => {
+      const result = buildResult({
+        metadata: { version: "1.0.0", downsample: null, anomaliesExcluded: false, fileSampleRate: 1 },
+      });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+      expect(output).toContain("File sample rate: 1s");
     });
 
     it("null avgPower renders as -- in segment table", () => {
@@ -264,6 +275,65 @@ describe("formatResult", () => {
       result.summary.avgHeartRatePctLthr = null;
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).not.toContain("% LTHR");
+    });
+
+    it("renders max values line when maxPower/maxHeartRate are present", () => {
+      const result = buildResult();
+      result.summary.maxPower = 280;
+      result.summary.maxHeartRate = 165;
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("Max Power: 280 W");
+      expect(output).toContain("Max HR: 165 bpm");
+    });
+
+    it("omits max values line when all max fields are null", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("Max Power:");
+      expect(output).not.toContain("Max HR:");
+    });
+
+    it("renders elevation line in Run Summary when totalAscent is present", () => {
+      const result = buildResult();
+      result.summary.totalAscent = 150;
+      result.summary.totalDescent = 120;
+      result.summary.netElevation = 30;
+      result.summary.minAltitude = 225;
+      result.summary.maxAltitude = 375;
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("Gain: 150 m");
+      expect(output).toContain("Loss: 120 m");
+      expect(output).toContain("+30 m");
+    });
+
+    it("omits elevation line in Run Summary when elevation data is null", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("Gain:");
+    });
+
+    it("renders NP/IF/RSS line when normalizedPower and intensityFactor are present", () => {
+      const result = buildResult();
+      result.summary.normalizedPower = 241;
+      result.summary.intensityFactor = 0.82;
+      result.summary.runStressScore = 67.3;
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("NP: 241 W");
+      expect(output).toContain("IF: 0.82");
+      expect(output).toContain("RSS (r2m): 67.3");
+    });
+
+    it("renders avgHrZone and avgPaceZone labels when present", () => {
+      const result = buildResult();
+      result.summary.avgHrZone = "Z2";
+      result.summary.avgPaceZone = "Base";
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("Avg HR Zone: Z2");
+      expect(output).toContain("Avg Pace Zone: Base");
     });
 
     it("omits context lines (Workout/Block/RPE/Notes) when not present", () => {
@@ -317,10 +387,100 @@ describe("formatResult", () => {
       expect(output).not.toContain("## Anomalies");
     });
 
-    it("always includes ## Metadata even when not in sections", () => {
+    it("does not include ## Metadata when not in sections", () => {
       const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
       const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("## Metadata");
+    });
+
+    it("includes ## Metadata when metadata is in sections", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["metadata"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
       expect(output).toContain("## Metadata");
+    });
+
+    it("renders ## Elevation Profile with stats and chart when elevationProfile is present", () => {
+      const result = buildResult({
+        elevationProfile: {
+          totalAscent: 150,
+          totalDescent: 120,
+          netElevation: 30,
+          minAltitude: 225,
+          maxAltitude: 375,
+          points: [[0, 225], [5, 375], [10, 255]],
+        },
+      });
+      const profile = { ...DEFAULT_PROFILE, sections: ["elevation_profile"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("## Elevation Profile");
+      expect(output).toContain("Gain: 150 m");
+      expect(output).toContain("Loss: 120 m");
+      expect(output).toContain("+30 m");
+      expect(output).toContain("```");
+    });
+
+    it("omits ## Elevation Profile when elevationProfile is null", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["elevation_profile"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("## Elevation Profile");
+    });
+
+    it("renders ## Weather with temp, humidity, wind, conditions when weatherSummary is present", () => {
+      const result = buildResult({
+        weatherSummary: {
+          temperature: 18,
+          humidity: 62,
+          dewPoint: 10,
+          windSpeed: 12,
+          windDirection: 315,
+          conditions: "Partly cloudy",
+        },
+      });
+      const profile = { ...DEFAULT_PROFILE, sections: ["weather"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("## Weather");
+      expect(output).toContain("18 C");
+      expect(output).toContain("62 %");
+      expect(output).toContain("12 km/h NW");
+      expect(output).toContain("Partly cloudy");
+    });
+
+    it("omits ## Weather when weatherSummary is null", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["weather"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("## Weather");
+    });
+
+    it("renders ## HR Zone Distribution when hrZoneDistribution is non-empty", () => {
+      const result = buildResult({
+        hrZoneDistribution: [
+          { label: "Z1", name: "Recovery", seconds: 300, percentage: 10 },
+          { label: "Z2", name: "Base", seconds: 2700, percentage: 90 },
+        ],
+      });
+      const profile = { ...DEFAULT_PROFILE, sections: ["hr_zones"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("## HR Zone Distribution");
+      expect(output).toContain("Z2 (Base)");
+    });
+
+    it("omits ## HR Zone Distribution when hrZoneDistribution is empty", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["hr_zones"] as SectionId[] };
+      const { output } = formatResult(buildResult(), "markdown", profile);
+      expect(output).not.toContain("## HR Zone Distribution");
+    });
+
+    it("renders ## Pace Zone Distribution when paceZoneDistribution is non-empty", () => {
+      const result = buildResult({
+        paceZoneDistribution: [
+          { label: "Z1", name: "Easy", seconds: 3000, percentage: 80 },
+          { label: "Z2", name: "Moderate", seconds: 750, percentage: 20 },
+        ],
+      });
+      const profile = { ...DEFAULT_PROFILE, sections: ["pace_zones"] as SectionId[] };
+      const { output } = formatResult(result, "markdown", profile);
+      expect(output).toContain("## Pace Zone Distribution");
+      expect(output).toContain("Z1 (Easy)");
     });
   });
 
@@ -373,6 +533,35 @@ describe("formatResult", () => {
       const warnText = warnings.join(" ").toLowerCase();
       expect(warnText).toContain("zone");
     });
+
+    it("drops elev_gain and elev_loss when no elevation data available", () => {
+      const result = buildResult({ elevationProfile: null });
+      const { warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
+      const warnText = warnings.join(" ");
+      expect(warnText).toContain("elev_gain");
+      expect(warnText).toContain("elev_loss");
+    });
+
+    it("keeps elev_gain and elev_loss when elevation data is available", () => {
+      const result = buildResult({
+        elevationProfile: {
+          totalAscent: 100, totalDescent: 80, netElevation: 20,
+          minAltitude: 200, maxAltitude: 300, points: [[0, 200], [5, 300], [10, 220]],
+        },
+      });
+      const { warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
+      const warnText = warnings.join(" ");
+      expect(warnText).not.toContain("elev_gain");
+      expect(warnText).not.toContain("elev_loss");
+    });
+
+    it("drops wind and temp columns when no weather data available", () => {
+      const result = buildResult({ weatherSummary: null });
+      const { warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
+      const warnText = warnings.join(" ");
+      expect(warnText).toContain('"wind"');
+      expect(warnText).toContain('"temp"');
+    });
   });
 
   // ─── SKIP SEGMENTS IF SINGLE LAP ──────────────────────────────────────────
@@ -386,9 +575,8 @@ describe("formatResult", () => {
       expect(warnings.some(w => w.toLowerCase().includes("segment"))).toBe(true);
     });
 
-    it("keeps Workout Splits when 2 segments and flag is true", () => {
-      const profile = { ...DEFAULT_PROFILE, skipSegmentsIfSingleLap: true };
-      const { output } = formatResult(buildResult(), "markdown", profile);
+    it("keeps Workout Splits when 2 segments and default profile (skipSegmentsIfSingleLap=true)", () => {
+      const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
       expect(output).toContain("## Workout Splits");
     });
   });

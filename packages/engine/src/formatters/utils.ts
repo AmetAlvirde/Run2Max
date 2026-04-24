@@ -133,6 +133,40 @@ export function fmtVR(pct: number): string {
   return `${pct.toFixed(1)} %`;
 }
 
+export function fmtElevation(m: number): string {
+  return `${Math.round(m)} m`;
+}
+
+export function fmtElevationSigned(m: number): string {
+  const r = Math.round(m);
+  return r >= 0 ? `+${r} m` : `${r} m`;
+}
+
+export function fmtTemperature(c: number): string {
+  return `${Math.round(c)} C`;
+}
+
+export function fmtHumidity(pct: number): string {
+  return `${Math.round(pct)} %`;
+}
+
+function degreesToCompass(deg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8]!;
+}
+
+export function fmtWind(speed: number, dir: number): string {
+  return `${Math.round(speed)} km/h ${degreesToCompass(dir)}`;
+}
+
+export function fmtIF(ratio: number): string {
+  return ratio.toFixed(2);
+}
+
+export function fmtRSS(score: number): string {
+  return score.toFixed(1);
+}
+
 export function fmtZonePct(pct: number): string {
   return `${pct.toFixed(1)} %`;
 }

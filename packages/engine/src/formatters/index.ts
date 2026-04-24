@@ -3,12 +3,15 @@ import type {
   AnalysisMetadata,
   ColumnId,
   DataCapabilities,
+  ElevationProfile,
   FormatResult,
   OutputFormat,
   RunSummary,
   SegmentRow,
   KmSplitRow,
   ZoneDistributionRow,
+  WeatherSummary,
+  WeatherPerSplit,
   DynamicsSummary,
   Anomaly,
   SectionId,
@@ -24,9 +27,9 @@ import { formatYaml } from "./yaml.js";
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_PROFILE: OutputProfileConfig = {
-  sections: ["summary", "segments", "km_splits", "zones", "dynamics", "anomalies"],
+  sections: ["summary", "elevation_profile", "weather", "segments", "km_splits", "zones", "dynamics", "anomalies", "metadata"],
   columns: "all",
-  skipSegmentsIfSingleLap: false,
+  skipSegmentsIfSingleLap: true,
 };
 
 const ALL_COLUMN_IDS: ColumnId[] = [
@@ -46,7 +49,12 @@ interface FilteredResult {
   segments?: SegmentRow[];
   kmSplits?: KmSplitRow[];
   zoneDistribution?: ZoneDistributionRow[];
+  hrZoneDistribution?: ZoneDistributionRow[];
+  paceZoneDistribution?: ZoneDistributionRow[];
   dynamicsSummary?: DynamicsSummary | null;
+  elevationProfile?: ElevationProfile | null;
+  weatherSummary?: WeatherSummary | null;
+  weatherPerSplit?: WeatherPerSplit[];
   anomalies?: Anomaly[];
 }
 
@@ -58,6 +66,8 @@ function reconcileColumns(
   requested: ColumnId[] | "all",
   caps: DataCapabilities,
   zoneDistribution: ZoneDistributionRow[],
+  hasElevation: boolean,
+  hasWeather: boolean,
 ): { columns: ColumnId[]; warnings: string[] } {
   const candidates = requested === "all" ? [...ALL_COLUMN_IDS] : [...requested];
   const columns: ColumnId[] = [];
@@ -71,6 +81,14 @@ function reconcileColumns(
     }
     if (col === "zone" && zoneDistribution.length === 0) {
       warnings.push(`Column "zone" dropped: no zone configuration`);
+      continue;
+    }
+    if ((col === "elev_gain" || col === "elev_loss") && !hasElevation) {
+      warnings.push(`Column "${col}" dropped: no elevation data available`);
+      continue;
+    }
+    if ((col === "wind" || col === "temp") && !hasWeather) {
+      warnings.push(`Column "${col}" dropped: no weather data available`);
       continue;
     }
     columns.push(col);
@@ -88,7 +106,8 @@ function applyProfile(
   profile: OutputProfileConfig,
 ): { filtered: FilteredResult; activeSections: SectionId[]; warnings: string[] } {
   const allSections: SectionId[] = [
-    "summary", "segments", "km_splits", "zones", "dynamics", "anomalies",
+    "summary", "elevation_profile", "weather", "segments", "km_splits",
+    "zones", "hr_zones", "pace_zones", "dynamics", "anomalies", "metadata",
   ];
   let activeSections: SectionId[] = profile.sections ?? allSections;
   const warnings: string[] = [];
@@ -108,12 +127,19 @@ function applyProfile(
     capabilities: result.capabilities,
   };
 
-  if (activeSections.includes("summary"))   filtered.summary = result.summary;
-  if (activeSections.includes("segments"))  filtered.segments = result.segments;
-  if (activeSections.includes("km_splits")) filtered.kmSplits = result.kmSplits;
-  if (activeSections.includes("zones"))     filtered.zoneDistribution = result.zoneDistribution;
-  if (activeSections.includes("dynamics"))  filtered.dynamicsSummary = result.dynamicsSummary;
-  if (activeSections.includes("anomalies")) filtered.anomalies = result.anomalies;
+  if (activeSections.includes("summary"))           filtered.summary = result.summary;
+  if (activeSections.includes("elevation_profile")) filtered.elevationProfile = result.elevationProfile;
+  if (activeSections.includes("weather")) {
+    filtered.weatherSummary = result.weatherSummary;
+    filtered.weatherPerSplit = result.weatherPerSplit;
+  }
+  if (activeSections.includes("segments"))    filtered.segments = result.segments;
+  if (activeSections.includes("km_splits"))   filtered.kmSplits = result.kmSplits;
+  if (activeSections.includes("zones"))       filtered.zoneDistribution = result.zoneDistribution;
+  if (activeSections.includes("hr_zones"))    filtered.hrZoneDistribution = result.hrZoneDistribution;
+  if (activeSections.includes("pace_zones"))  filtered.paceZoneDistribution = result.paceZoneDistribution;
+  if (activeSections.includes("dynamics"))    filtered.dynamicsSummary = result.dynamicsSummary;
+  if (activeSections.includes("anomalies"))   filtered.anomalies = result.anomalies;
 
   return { filtered, activeSections, warnings };
 }
@@ -138,6 +164,8 @@ export function formatResult(
     profile.columns ?? "all",
     result.capabilities,
     result.zoneDistribution,
+    result.elevationProfile != null,
+    result.weatherSummary != null,
   );
 
   const warnings = [...sectionWarnings, ...colWarnings];

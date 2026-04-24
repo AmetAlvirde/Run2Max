@@ -22,9 +22,17 @@ import {
   fmtFPR,
   fmtVR,
   fmtZonePct,
+  fmtElevation,
+  fmtElevationSigned,
+  fmtTemperature,
+  fmtHumidity,
+  fmtWind,
+  fmtIF,
+  fmtRSS,
   renderColumnValue,
   padTable,
 } from "./utils.js";
+import { renderElevationChart } from "./ascii-chart.js";
 
 // ---------------------------------------------------------------------------
 // Internal types (re-uses optional fields from FilteredAnalysisResult)
@@ -40,14 +48,15 @@ type FilteredResult = Pick<
 // ---------------------------------------------------------------------------
 
 function renderMetadata(result: FilteredResult): string {
-  const { version, downsample, anomaliesExcluded } = result.metadata;
+  const { version, downsample, anomaliesExcluded, fileSampleRate } = result.metadata;
   const dsStr = downsample != null ? `${downsample}s` : "none";
+  const sampleStr = fileSampleRate != null ? `${fileSampleRate}s` : "unknown";
   const anomStr = anomaliesExcluded ? "excluded" : "included";
   return [
     "## Metadata",
     "",
     `Produced by: run2max v${version}`,
-    `Downsample: ${dsStr}`,
+    `Downsample: ${dsStr} | File sample rate: ${sampleStr}`,
     `Anomalies: ${anomStr}`,
   ].join("\n");
 }
@@ -87,6 +96,35 @@ function renderSummary(result: FilteredResult): string {
   const paceStr = s.avgPace != null ? fmtPace(s.avgPace) : NULL_PLACEHOLDER;
 
   lines.push(`Avg Power: ${powerStr} | Avg HR: ${hrStr} | Avg Pace: ${paceStr}`);
+
+  // Max values line (only if any are non-null)
+  const maxParts: string[] = [];
+  if (s.maxPower != null)     maxParts.push(`Max Power: ${fmtPower(s.maxPower)}`);
+  if (s.maxHeartRate != null) maxParts.push(`Max HR: ${fmtHR(s.maxHeartRate)}`);
+  if (s.maxPace != null)      maxParts.push(`Max Pace: ${fmtPace(s.maxPace)}`);
+  if (maxParts.length > 0) lines.push(maxParts.join(" | "));
+
+  // Elevation line (only if any elevation data)
+  const elevParts: string[] = [];
+  if (s.totalAscent != null)  elevParts.push(`Gain: ${fmtElevation(s.totalAscent)}`);
+  if (s.totalDescent != null) elevParts.push(`Loss: ${fmtElevation(s.totalDescent)}`);
+  if (s.netElevation != null) elevParts.push(`Net: ${fmtElevationSigned(s.netElevation)}`);
+  if (s.minAltitude != null && s.maxAltitude != null)
+    elevParts.push(`Alt: ${fmtElevation(s.minAltitude)}–${fmtElevation(s.maxAltitude)}`);
+  if (elevParts.length > 0) lines.push(elevParts.join(" | "));
+
+  // Zone labels
+  const zoneParts: string[] = [];
+  if (s.avgHrZone != null)   zoneParts.push(`Avg HR Zone: ${s.avgHrZone}`);
+  if (s.avgPaceZone != null) zoneParts.push(`Avg Pace Zone: ${s.avgPaceZone}`);
+  if (zoneParts.length > 0) lines.push(zoneParts.join(" | "));
+
+  // NP / IF / RSS
+  const npParts: string[] = [];
+  if (s.normalizedPower != null)  npParts.push(`NP: ${fmtPower(s.normalizedPower)}`);
+  if (s.intensityFactor != null)  npParts.push(`IF: ${fmtIF(s.intensityFactor)}`);
+  if (s.runStressScore != null)   npParts.push(`RSS (r2m): ${fmtRSS(s.runStressScore)}`);
+  if (npParts.length > 0) lines.push(npParts.join(" | "));
 
   return lines.join("\n");
 }
@@ -192,6 +230,81 @@ function renderDynamics(result: FilteredResult): string {
   return lines.join("\n");
 }
 
+function renderElevationProfile(result: FilteredResult): string {
+  const ep = result.elevationProfile;
+  if (!ep) return "";
+
+  const statParts = [
+    `Gain: ${fmtElevation(ep.totalAscent)}`,
+    `Loss: ${fmtElevation(ep.totalDescent)}`,
+    `Net: ${fmtElevationSigned(ep.netElevation)}`,
+    `Alt: ${fmtElevation(ep.minAltitude)}–${fmtElevation(ep.maxAltitude)}`,
+  ];
+
+  return [
+    "## Elevation Profile",
+    "",
+    statParts.join(" | "),
+    "",
+    "```",
+    renderElevationChart(ep.points),
+    "```",
+  ].join("\n");
+}
+
+function renderWeather(result: FilteredResult): string {
+  const w = result.weatherSummary;
+  if (!w) return "";
+
+  return [
+    "## Weather",
+    "",
+    [
+      `Temp: ${fmtTemperature(w.temperature)}`,
+      `Humidity: ${fmtHumidity(w.humidity)}`,
+      `Dew Point: ${fmtTemperature(w.dewPoint)}`,
+    ].join(" | "),
+    [
+      `Wind: ${fmtWind(w.windSpeed, w.windDirection)}`,
+      `Conditions: ${w.conditions}`,
+    ].join(" | "),
+  ].join("\n");
+}
+
+function renderHrZones(result: FilteredResult): string {
+  const zones = result.hrZoneDistribution;
+  if (!zones || zones.length === 0) return "";
+
+  const nonZero = zones.filter(z => z.percentage > 0);
+  if (nonZero.length === 0) return "";
+
+  const headers = ["Zone", "Time", "%"];
+  const rows = nonZero.map(z => [
+    `${z.label} (${z.name})`,
+    fmtDuration(z.seconds),
+    fmtZonePct(z.percentage),
+  ]);
+
+  return ["## HR Zone Distribution", "", padTable(headers, rows)].join("\n");
+}
+
+function renderPaceZones(result: FilteredResult): string {
+  const zones = result.paceZoneDistribution;
+  if (!zones || zones.length === 0) return "";
+
+  const nonZero = zones.filter(z => z.percentage > 0);
+  if (nonZero.length === 0) return "";
+
+  const headers = ["Zone", "Time", "%"];
+  const rows = nonZero.map(z => [
+    `${z.label} (${z.name})`,
+    fmtDuration(z.seconds),
+    fmtZonePct(z.percentage),
+  ]);
+
+  return ["## Pace Zone Distribution", "", padTable(headers, rows)].join("\n");
+}
+
 function renderAnomalies(result: FilteredResult): string {
   const anomalies = result.anomalies;
   if (!anomalies || anomalies.length === 0) return "";
@@ -213,16 +326,15 @@ const SECTION_RENDERERS: Record<
   (result: FilteredResult, activeColumns: ColumnId[]) => string
 > = {
   summary:           (r) => renderSummary(r),
+  elevation_profile: (r) => renderElevationProfile(r),
+  weather:           (r) => renderWeather(r),
   segments:          (r, cols) => renderSegments(r, cols),
   km_splits:         (r, cols) => renderKmSplits(r, cols),
   zones:             (r) => renderZones(r),
+  hr_zones:          (r) => renderHrZones(r),
+  pace_zones:        (r) => renderPaceZones(r),
   dynamics:          (r) => renderDynamics(r),
   anomalies:         (r) => renderAnomalies(r),
-  // Stubs — implemented in Phase 8 / Phase 9
-  elevation_profile: () => "",
-  weather:           () => "",
-  hr_zones:          () => "",
-  pace_zones:        () => "",
   metadata:          (r) => renderMetadata(r),
 };
 
@@ -235,7 +347,7 @@ export function formatMarkdown(
   activeSections: SectionId[],
   activeColumns: ColumnId[],
 ): string {
-  const parts: string[] = [renderMetadata(filtered)];
+  const parts: string[] = [];
 
   for (const section of activeSections) {
     const rendered = SECTION_RENDERERS[section](filtered, activeColumns);
