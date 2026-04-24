@@ -121,6 +121,11 @@ function applyProfile(
 // formatResult — public entry point
 // ---------------------------------------------------------------------------
 
+/**
+ * Formats an AnalysisResult into markdown, JSON, or YAML.
+ * Profile controls which sections and columns are included.
+ * Returns { output, warnings } — warnings are non-fatal (e.g. dropped columns).
+ */
 export function formatResult(
   result: AnalysisResult,
   format: OutputFormat,
