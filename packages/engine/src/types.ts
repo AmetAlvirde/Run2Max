@@ -59,6 +59,7 @@ export interface QuantifyOptions {
   timezone?: string;
   downsample?: number;
   excludeAnomalies?: boolean;
+  noWeather?: boolean;  // CLI --no-weather flag; overrides config.weather
 }
 
 // ---------------------------------------------------------------------------

@@ -107,7 +107,7 @@ export async function quantify(
   let finalSegments: SegmentRow[] = segments;
 
   const gps = extractGpsCoordinates(records);
-  if (gps && config?.weather !== false) {
+  if (gps && config?.weather !== false && !options.noWeather) {
     const weatherResult = await fetchWeather(gps.lat, gps.lon, summary.date);
     if (weatherResult) {
       weatherSummary = weatherResult.summary;
