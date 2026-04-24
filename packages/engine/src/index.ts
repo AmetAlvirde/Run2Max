@@ -29,14 +29,18 @@ export { loadConfig } from "./config/loader.js";
 export type { LoadConfigOptions } from "./config/loader.js";
 
 // ---------------------------------------------------------------------------
-// quantify — main engine entry point (implemented in Phase 3)
+// quantify — main engine entry point
 // ---------------------------------------------------------------------------
 
-import type { AnalysisResult, QuantifyOptions } from "./types.js";
+export { quantify } from "./computations/quantify.js";
 
-export async function quantify(
-  _fitBuffer: ArrayBuffer,
-  _options?: QuantifyOptions
-): Promise<AnalysisResult> {
-  throw new Error("Not implemented — coming in Phase 3");
-}
+// ---------------------------------------------------------------------------
+// Computation utilities (useful for direct consumption / testing)
+// ---------------------------------------------------------------------------
+
+export { classifyPowerZone, computeZoneDistribution } from "./computations/zones.js";
+export { computeSegments } from "./computations/segments.js";
+export { computeKmSplits } from "./computations/km-splits.js";
+export { computeDynamicsSummary } from "./computations/dynamics.js";
+export { computeSummary } from "./computations/summary.js";
+export { detectAnomalies, applyAnomalyExclusions } from "./computations/anomalies.js";

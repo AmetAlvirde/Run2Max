@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import { detectCapabilities } from "./detect-capabilities.js";
+import { quantify } from "./computations/quantify.js";
 import type { Run2MaxRecord } from "./types.js";
 
 // Resolve fixture path relative to the project root so it works regardless
@@ -116,6 +117,57 @@ describe("smoke — real .fit file", () => {
       expect(avgPower).toBeLessThan(800);
       expect(avgHr).toBeGreaterThan(60);
       expect(avgHr).toBeLessThan(220);
+    },
+  );
+
+  it.skipIf(!hasFixture)(
+    "quantify() produces a valid AnalysisResult",
+    async () => {
+      const buf = await readFile(fixturePath);
+      const ab = nodeBufferToArrayBuffer(buf);
+
+      const config = {
+        zones: [
+          { label: "E", name: "Easy", min: 204, max: 233 },
+          { label: "M", name: "Marathon", min: 251, max: 260 },
+          { label: "SS", name: "Sweet Spot", min: 260, max: 269 },
+          { label: "HM", name: "Half Marathon", min: 269, max: 280 },
+          { label: "SUB-T", name: "Sub-Threshold", min: 280, max: 289 },
+          { label: "THRESH", name: "Threshold", min: 289, max: 301 },
+        ],
+        thresholds: { lthr: 171 },
+      };
+
+      const result = await quantify(ab, { config });
+
+      // Summary
+      expect(result.summary.distance).toBeGreaterThan(0);
+      expect(result.summary.duration).toBeGreaterThan(0);
+      expect(result.summary.avgPower).toBeGreaterThan(0);
+      expect(result.summary.avgPowerZone).toBeTruthy();
+
+      // Segments
+      expect(result.segments.length).toBeGreaterThan(0);
+
+      // Km splits
+      expect(result.kmSplits.length).toBeGreaterThan(0);
+      expect(result.kmSplits[0].km).toBe(1);
+
+      // Zone distribution
+      expect(result.zoneDistribution.length).toBeGreaterThanOrEqual(6);
+      const totalPct = result.zoneDistribution.reduce(
+        (sum, z) => sum + z.percentage,
+        0,
+      );
+      expect(totalPct).toBeCloseTo(100);
+
+      // Dynamics (Stryd file should have dynamics)
+      expect(result.dynamicsSummary).not.toBeNull();
+      expect(result.dynamicsSummary!.avgFormPowerRatio).toBeGreaterThan(0);
+
+      // Capabilities
+      expect(result.capabilities.hasRunningDynamics).toBe(true);
+      expect(result.capabilities.hasStrydEnhanced).toBe(true);
     },
   );
 });
