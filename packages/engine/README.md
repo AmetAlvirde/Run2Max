@@ -1,0 +1,117 @@
+# @run2max/engine
+
+Core analysis library for run2max. Parses normalized `.fit` data, detects
+available data tiers, loads config, and produces a structured `AnalysisResult`.
+
+## Public API
+
+```ts
+import { quantify, detectCapabilities, loadConfig } from "@run2max/engine";
+import type {
+  AnalysisResult,
+  Run2MaxConfig,
+  DataCapabilities,
+} from "@run2max/engine";
+```
+
+### `quantify(fitBuffer, options?)`
+
+Main entry point. Takes a raw `.fit` file as `ArrayBuffer` and returns an
+`AnalysisResult`.
+
+```ts
+const result = await quantify(buffer, {
+  config, // loaded via loadConfig()
+  workout: "Build 17: Recovery Run",
+  block: "Build Week 04",
+  rpe: 2,
+  timezone: "America/Santiago",
+  excludeAnomalies: false,
+});
+```
+
+> Not yet implemented — coming in Phase 3.
+
+### `loadConfig(options?)`
+
+Discovers, merges, and validates the config. Returns `null` if no config file is
+found.
+
+```ts
+const config = await loadConfig(); // auto-discover
+const config = await loadConfig({ configPath: "./my-config.yaml" }); // explicit
+```
+
+Resolution order (highest priority last):
+
+1. `~/.config/run2max/config.yaml`
+2. `./run2max.config.yaml` (CWD)
+3. `options.configPath` (bypasses auto-discovery)
+
+When both 1 and 2 exist, they are deep-merged: object fields merge, arrays
+replace.
+
+### `detectCapabilities(records)`
+
+Scans all records and returns which data tiers are present.
+
+```ts
+const { hasRunningDynamics, hasStrydEnhanced } = detectCapabilities(records);
+```
+
+## Data tiers
+
+| Tier                 | Fields                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1 — Universal        | `timestamp`, `power`, `heartRate`, `cadence`, `speed`, `distance`, `altitude`, GPS                     |
+| 2 — Running Dynamics | `stanceTime`, `stanceTimeBalance`, `stepLength`, `verticalOscillation`, `verticalOscillationBalance`   |
+| 3 — Stryd-enhanced   | `formPower`, `airPower`, `legSpringStiffness`, `legSpringStiffnessBalance`, `impactLoadingRateBalance` |
+
+## Config format
+
+```yaml
+# ~/.config/run2max/config.yaml
+
+calibration:
+  date: "2026-02-01"
+  source: "RECON block"
+  critical_power: 295
+  lthr: 171
+
+zones:
+  - { label: "E", name: "Easy", min: 204, max: 233, rpe: "2-4" }
+  - { label: "M", name: "Marathon", min: 251, max: 260, rpe: "5-6" }
+  - { label: "SS", name: "Sweet Spot", min: 260, max: 269, rpe: "6" }
+  - { label: "HM", name: "Half Marathon", min: 269, max: 280, rpe: "6-7" }
+  - { label: "SUB-T", name: "Sub-Threshold", min: 280, max: 289, rpe: "7" }
+  - { label: "THRESH", name: "Threshold", min: 289, max: 301, rpe: "7-8" }
+
+thresholds:
+  lthr: 171
+  max_hr: 192
+
+athlete:
+  timezone: "America/Santiago"
+
+output:
+  default:
+    sections: [summary, km_splits, zones, dynamics, notes]
+    columns: [power, zone, pace, hr, cadence, gct, stride]
+    skip_segments_if_single_lap: true
+  detailed:
+    sections: [summary, segments, km_splits, zones, dynamics, notes]
+    columns: all
+    skip_segments_if_single_lap: false
+```
+
+Only `zones` is required. All other fields are optional.
+
+## Testing
+
+```bash
+# Unit tests only
+pnpm --filter @run2max/engine exec vitest run
+
+# With smoke tests against a real .fit file
+FIT_FIXTURE=./fixture-fits/your-run.fit pnpm --filter @run2max/engine exec vitest run
+```
