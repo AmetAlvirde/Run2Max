@@ -97,6 +97,9 @@ export interface SegmentRow {
   avgStanceTimeBalance: number | null;    // %
   avgStepLength: number | null;           // mm
   avgVerticalOscillation: number | null;  // mm
+  // Derived
+  formPowerRatio: number | null;          // formPower / power (Tier 3)
+  verticalRatio: number | null;           // (verticalOscillation / stepLength) * 100 (Tier 2)
 }
 
 export interface KmSplitRow {
@@ -113,6 +116,9 @@ export interface KmSplitRow {
   avgStanceTimeBalance: number | null;    // %
   avgStepLength: number | null;           // mm
   avgVerticalOscillation: number | null;  // mm
+  // Derived
+  formPowerRatio: number | null;          // formPower / power (Tier 3)
+  verticalRatio: number | null;           // (verticalOscillation / stepLength) * 100 (Tier 2)
 }
 
 export interface ZoneDistributionRow {
@@ -135,6 +141,7 @@ export interface DynamicsSummary {
   avgLegSpringStiffness: number | null;      // kN/m
   avgLegSpringStiffnessBalance: number | null; // %
   avgFormPowerRatio: number | null;          // formPower / power
+  avgVerticalRatio: number | null;           // (verticalOscillation / stepLength) * 100
 }
 
 export interface Anomaly {
