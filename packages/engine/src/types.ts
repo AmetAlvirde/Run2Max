@@ -1,4 +1,6 @@
 import type { RecordData } from "normalize-fit-file";
+import type { Run2MaxConfig } from "./config/schema.js";
+export type { Run2MaxConfig, ZoneConfig, OutputProfileConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------
 // Input types
@@ -42,45 +44,6 @@ export interface Run2MaxRecord extends RecordData {
 export interface DataCapabilities {
   hasRunningDynamics: boolean; // Tier 2: stanceTime, stepLength, verticalOscillation
   hasStrydEnhanced: boolean;   // Tier 3: formPower, airPower, legSpringStiffness, etc.
-}
-
-// ---------------------------------------------------------------------------
-// Config (placeholder — will be replaced with valibot-derived type in config/schema.ts)
-// ---------------------------------------------------------------------------
-
-export interface ZoneConfig {
-  label: string;
-  name: string;
-  min: number;
-  max: number;
-  rpe?: string;
-}
-
-export interface Run2MaxConfig {
-  calibration?: {
-    date?: string;
-    source?: string;
-    criticalPower?: number;
-    lthr?: number;
-  };
-  zones: ZoneConfig[];
-  thresholds?: {
-    lthr?: number;
-    maxHr?: number;
-  };
-  athlete?: {
-    timezone?: string;
-  };
-  output?: {
-    default?: OutputProfileConfig;
-    detailed?: OutputProfileConfig;
-  };
-}
-
-export interface OutputProfileConfig {
-  sections?: string[];
-  columns?: string[] | "all";
-  skipSegmentsIfSingleLap?: boolean;
 }
 
 // ---------------------------------------------------------------------------
