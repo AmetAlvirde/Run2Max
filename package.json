@@ -1,0 +1,15 @@
+{
+  "name": "run2max",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "vitest run",
+    "dev": "pnpm -r run dev"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  }
+}
