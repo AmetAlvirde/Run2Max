@@ -33,9 +33,33 @@ const ZoneConfigSchema = v.object({
   rpe: v.optional(v.string()),
 });
 
+const SECTION_IDS = [
+  "summary",
+  "segments",
+  "km_splits",
+  "zones",
+  "dynamics",
+  "anomalies",
+] as const;
+
+const COLUMN_IDS = [
+  "power",
+  "zone",
+  "pace",
+  "hr",
+  "cadence",
+  "gct",
+  "gct_balance",
+  "stride",
+  "vo",
+  "vo_balance",
+  "fpr",
+  "vr",
+] as const;
+
 const OutputProfileConfigSchema = v.object({
-  sections: v.optional(v.array(v.string())),
-  columns: v.optional(v.union([v.array(v.string()), v.literal("all")])),
+  sections: v.optional(v.array(v.picklist(SECTION_IDS))),
+  columns: v.optional(v.union([v.array(v.picklist(COLUMN_IDS)), v.literal("all")])),
   skipSegmentsIfSingleLap: v.optional(v.boolean()),
 });
 

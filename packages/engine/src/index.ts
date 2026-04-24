@@ -44,3 +44,16 @@ export { computeKmSplits } from "./computations/km-splits.js";
 export { computeDynamicsSummary } from "./computations/dynamics.js";
 export { computeSummary } from "./computations/summary.js";
 export { detectAnomalies, applyAnomalyExclusions } from "./computations/anomalies.js";
+
+// ---------------------------------------------------------------------------
+// Formatters
+// ---------------------------------------------------------------------------
+
+export { formatResult, DEFAULT_PROFILE } from "./formatters/index.js";
+export type {
+  FormatResult,
+  OutputFormat,
+  SectionId,
+  ColumnId,
+  AnalysisMetadata,
+} from "./types.js";

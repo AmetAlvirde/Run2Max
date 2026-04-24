@@ -153,6 +153,7 @@ export interface Anomaly {
 }
 
 export interface AnalysisResult {
+  metadata: AnalysisMetadata;
   summary: RunSummary;
   segments: SegmentRow[];
   kmSplits: KmSplitRow[];
@@ -160,4 +161,43 @@ export interface AnalysisResult {
   dynamicsSummary: DynamicsSummary | null; // null when no Tier 2/3 data
   anomalies: Anomaly[];
   capabilities: DataCapabilities;
+}
+
+// ---------------------------------------------------------------------------
+// Formatter types
+// ---------------------------------------------------------------------------
+
+export type SectionId =
+  | "summary"
+  | "segments"
+  | "km_splits"
+  | "zones"
+  | "dynamics"
+  | "anomalies";
+
+export type ColumnId =
+  | "power"
+  | "zone"
+  | "pace"
+  | "hr"
+  | "cadence"
+  | "gct"
+  | "gct_balance"
+  | "stride"
+  | "vo"
+  | "vo_balance"
+  | "fpr"
+  | "vr";
+
+export type OutputFormat = "markdown" | "json" | "yaml";
+
+export interface AnalysisMetadata {
+  version: string;
+  downsample: number | null;
+  anomaliesExcluded: boolean;
+}
+
+export interface FormatResult {
+  output: string;
+  warnings: string[];
 }
