@@ -12,6 +12,8 @@ import { computeKmSplits } from "./km-splits.js";
 import { computeZoneDistribution } from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
 
+const ENGINE_VERSION = "0.0.1";
+
 /**
  * Main engine entry point. Takes a raw .fit file buffer and produces
  * a complete analysis result.
@@ -68,6 +70,11 @@ export async function quantify(
   const dynamicsSummary = computeDynamicsSummary(records, capabilities);
 
   return {
+    metadata: {
+      version: ENGINE_VERSION,
+      downsample: options.downsample ?? null,
+      anomaliesExcluded: options.excludeAnomalies ?? false,
+    },
     summary,
     segments,
     kmSplits,

@@ -6,9 +6,15 @@ available data tiers, loads config, and produces a structured `AnalysisResult`.
 ## Public API
 
 ```ts
-import { quantify, detectCapabilities, loadConfig } from "@run2max/engine";
+import { quantify, formatResult, loadConfig, detectCapabilities } from "@run2max/engine";
 import type {
   AnalysisResult,
+  AnalysisMetadata,
+  FormatResult,
+  OutputFormat,
+  OutputProfileConfig,
+  SectionId,
+  ColumnId,
   Run2MaxConfig,
   DataCapabilities,
 } from "@run2max/engine";
@@ -30,7 +36,7 @@ const result = await quantify(buffer, {
 });
 ```
 
-> Not yet implemented — coming in Phase 3.
+`AnalysisResult` always includes a `metadata` field (`version`, `downsample`, `anomaliesExcluded`) populated from the options passed to `quantify()`.
 
 ### `loadConfig(options?)`
 
@@ -50,6 +56,34 @@ Resolution order (highest priority last):
 
 When both 1 and 2 exist, they are deep-merged: object fields merge, arrays
 replace.
+
+### `formatResult(result, format, profile)`
+
+Transforms an `AnalysisResult` into a formatted string. Returns `{ output, warnings }`.
+
+```ts
+import { formatResult, DEFAULT_PROFILE } from "@run2max/engine";
+
+const { output, warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
+// format: "markdown" | "json" | "yaml"
+```
+
+`DEFAULT_PROFILE` includes all sections and columns with `skipSegmentsIfSingleLap: false`.
+Pass a custom `OutputProfileConfig` to filter sections, restrict columns, or enable single-lap skipping.
+
+Warnings are returned (not thrown) when columns are dropped because the required data tier is
+unavailable, or when `skipSegmentsIfSingleLap` removes the segments section.
+
+**Sections:** `summary` · `segments` · `km_splits` · `zones` · `dynamics` · `anomalies`
+
+**Columns:** `power` · `zone` · `pace` · `hr` · `cadence` · `gct` · `gct_balance` · `stride` · `vo` · `vo_balance` · `fpr` · `vr`
+
+Column availability by tier:
+
+| Column(s) | Requires |
+|-----------|----------|
+| `gct`, `gct_balance`, `stride`, `vo`, `vo_balance`, `vr` | Tier 2 — Running Dynamics |
+| `fpr` | Tier 3 — Stryd-enhanced |
 
 ### `detectCapabilities(records)`
 
@@ -95,11 +129,11 @@ athlete:
 
 output:
   default:
-    sections: [summary, km_splits, zones, dynamics, notes]
+    sections: [summary, km_splits, zones, dynamics, anomalies]
     columns: [power, zone, pace, hr, cadence, gct, stride]
     skip_segments_if_single_lap: true
   detailed:
-    sections: [summary, segments, km_splits, zones, dynamics, notes]
+    sections: [summary, segments, km_splits, zones, dynamics, anomalies]
     columns: all
     skip_segments_if_single_lap: false
 ```
