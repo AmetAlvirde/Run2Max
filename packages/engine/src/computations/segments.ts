@@ -7,6 +7,7 @@ import type {
 } from "../types.js";
 import { avg } from "./utils.js";
 import { classifyPowerZone } from "./zones.js";
+import { computeSplitElevation, getAltitude } from "./elevation.js";
 
 /**
  * Get the distance value from a record, preferring strydDistance.
@@ -120,6 +121,17 @@ function buildSegmentRow(
       ? avgFormPower / avgPower
       : null;
 
+  // Elevation
+  const hasAltitudeData = records.some((r) => getAltitude(r) !== null);
+  const splitElev = hasAltitudeData ? computeSplitElevation(records) : null;
+  const elevGain = splitElev?.gain ?? null;
+  const elevLoss = splitElev?.loss ?? null;
+
+  // Tier 3: air power
+  const avgAirPower = capabilities.hasStrydEnhanced
+    ? avg(records.map((r) => r.airPower ?? null))
+    : null;
+
   return {
     lapIndex,
     distance,
@@ -135,5 +147,11 @@ function buildSegmentRow(
     avgVerticalOscillation,
     formPowerRatio,
     verticalRatio,
+    elevGain,
+    elevLoss,
+    avgAirPower,
+    windSpeed: null,
+    windDirection: null,
+    temperature: null,
   };
 }

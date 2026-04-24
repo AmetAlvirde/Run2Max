@@ -187,4 +187,50 @@ describe("computeSegments", () => {
     // (50 / 1000) * 100 = 5%
     expect(result[0].verticalRatio).toBeCloseTo(5);
   });
+
+  // ---------------------------------------------------------------------------
+  // Elevation
+  // ---------------------------------------------------------------------------
+
+  it("computes elevGain and elevLoss from altitude data", () => {
+    const records = [
+      rec(0, { enhancedAltitude: 200 }),
+      rec(1, { enhancedAltitude: 210 }), // +10 gain
+      rec(2, { enhancedAltitude: 205 }), // -5 loss
+    ];
+    const laps = [lap(0, 2)];
+    const result = computeSegments(records, laps, ZONES, TIER1_ONLY);
+
+    expect(result[0].elevGain).toBeCloseTo(10);
+    expect(result[0].elevLoss).toBeCloseTo(5);
+  });
+
+  it("returns null elevGain/elevLoss when no altitude data", () => {
+    const records = [rec(0), rec(1), rec(2)]; // no altitude
+    const laps = [lap(0, 2)];
+    const result = computeSegments(records, laps, ZONES, TIER1_ONLY);
+
+    expect(result[0].elevGain).toBeNull();
+    expect(result[0].elevLoss).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // avgAirPower (Tier 3)
+  // ---------------------------------------------------------------------------
+
+  it("computes avgAirPower when hasStrydEnhanced is true", () => {
+    const records = [rec(0, { airPower: 12 }), rec(1, { airPower: 18 })];
+    const laps = [lap(0, 1)];
+    const result = computeSegments(records, laps, ZONES, ALL_TIERS);
+
+    expect(result[0].avgAirPower).toBeCloseTo(15);
+  });
+
+  it("sets avgAirPower to null when hasStrydEnhanced is false", () => {
+    const records = [rec(0, { airPower: 15 }), rec(1, { airPower: 15 })];
+    const laps = [lap(0, 1)];
+    const result = computeSegments(records, laps, ZONES, TIER1_ONLY);
+
+    expect(result[0].avgAirPower).toBeNull();
+  });
 });

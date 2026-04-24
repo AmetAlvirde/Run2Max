@@ -23,6 +23,11 @@ export const COLUMN_HEADERS: Record<ColumnId, string> = {
   vo_balance:  "VO Bal",
   fpr:         "FPR",
   vr:          "VR",
+  elev_gain:   "Elev+",
+  elev_loss:   "Elev-",
+  air_power:   "Air Pwr",
+  wind:        "Wind",
+  temp:        "Temp",
 };
 
 /** Which DataCapabilities flag a column requires. Undefined = always available. */
@@ -34,6 +39,7 @@ export const TIER_REQUIREMENTS: Partial<Record<ColumnId, keyof DataCapabilities>
   vo_balance:  "hasRunningDynamics",
   vr:          "hasRunningDynamics",
   fpr:         "hasStrydEnhanced",
+  air_power:   "hasStrydEnhanced",
 };
 
 /** Maps ColumnId to the field name on SegmentRow / KmSplitRow. */
@@ -50,6 +56,11 @@ export const COLUMN_FIELD_MAP: Record<ColumnId, string> = {
   vo_balance:  "avgVerticalOscillationBalance",
   fpr:         "formPowerRatio",
   vr:          "verticalRatio",
+  elev_gain:   "elevGain",
+  elev_loss:   "elevLoss",
+  air_power:   "avgAirPower",
+  wind:        "windSpeed",
+  temp:        "temperature",
 };
 
 // ---------------------------------------------------------------------------
@@ -122,6 +133,40 @@ export function fmtVR(pct: number): string {
   return `${pct.toFixed(1)} %`;
 }
 
+export function fmtElevation(m: number): string {
+  return `${Math.round(m)} m`;
+}
+
+export function fmtElevationSigned(m: number): string {
+  const r = Math.round(m);
+  return r >= 0 ? `+${r} m` : `${r} m`;
+}
+
+export function fmtTemperature(c: number): string {
+  return `${Math.round(c)} C`;
+}
+
+export function fmtHumidity(pct: number): string {
+  return `${Math.round(pct)} %`;
+}
+
+function degreesToCompass(deg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8]!;
+}
+
+export function fmtWind(speed: number, dir: number): string {
+  return `${Math.round(speed)} km/h ${degreesToCompass(dir)}`;
+}
+
+export function fmtIF(ratio: number): string {
+  return ratio.toFixed(2);
+}
+
+export function fmtRSS(score: number): string {
+  return score.toFixed(1);
+}
+
 export function fmtZonePct(pct: number): string {
   return `${pct.toFixed(1)} %`;
 }
@@ -168,6 +213,11 @@ export function renderColumnValue(
     case "vo_balance":  return fmtBalance(n);
     case "fpr":         return fmtFPR(n);
     case "vr":          return fmtVR(n);
+    case "elev_gain":   return `+${Math.round(n)} m`;
+    case "elev_loss":   return `-${Math.round(Math.abs(n))} m`;
+    case "air_power":   return fmtPower(n);
+    case "wind":        return `${Math.round(n)} km/h`;
+    case "temp":        return `${Math.round(n)} C`;
     default:            return String(value);
   }
 }

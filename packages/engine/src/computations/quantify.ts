@@ -3,16 +3,34 @@ import {
   normalizeFFP,
   downsampleRecords,
 } from "normalize-fit-file";
-import type { AnalysisResult, QuantifyOptions, Run2MaxRecord } from "../types.js";
+import type {
+  AnalysisResult,
+  QuantifyOptions,
+  Run2MaxRecord,
+  WeatherSummary,
+  WeatherPerSplit,
+  SegmentRow,
+  KmSplitRow,
+} from "../types.js";
+import { ENGINE_VERSION } from "../index.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
 import { computeSegments } from "./segments.js";
 import { computeKmSplits } from "./km-splits.js";
-import { computeZoneDistribution } from "./zones.js";
+import {
+  computePowerZoneDistribution,
+  computeHrZoneDistribution,
+  computePaceZoneDistribution,
+} from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
-
-const ENGINE_VERSION = "0.0.1";
+import { computeElevationProfile } from "./elevation.js";
+import { computeFileSampleRate } from "./utils.js";
+import {
+  extractGpsCoordinates,
+  fetchWeather,
+  interpolateWeatherToSplits,
+} from "./weather.js";
 
 /**
  * Main engine entry point. Takes a raw .fit file buffer and produces
@@ -26,8 +44,9 @@ export async function quantify(
   const rawData = await parseFitBuffer(fitBuffer);
   const normalized = normalizeFFP(rawData);
 
-  // 2. Cast records and detect capabilities
+  // 2. Cast records, compute file sample rate (before downsampling), detect capabilities
   let records = normalized.records as Run2MaxRecord[];
+  const fileSampleRate = computeFileSampleRate(records);
   const capabilities = detectCapabilities(records);
 
   // 3. Downsample if requested
@@ -45,7 +64,9 @@ export async function quantify(
 
   // 6. Resolve config
   const config = options.config;
-  const zones = config?.zones;
+  const zones = config?.powerZones;
+  const hrZones = config?.hrZones;
+  const paceZones = config?.paceZones;
   const intervalSeconds = options.downsample ?? 1;
 
   // 7. Compute all analysis components
@@ -57,6 +78,8 @@ export async function quantify(
     options,
   );
 
+  const elevationProfile = computeElevationProfile(records, normalized.session);
+
   const segments = zones
     ? computeSegments(records, normalized.laps, zones, capabilities)
     : [];
@@ -64,22 +87,72 @@ export async function quantify(
   const kmSplits = computeKmSplits(records, zones, capabilities);
 
   const zoneDistribution = zones
-    ? computeZoneDistribution(records, zones, intervalSeconds)
+    ? computePowerZoneDistribution(records, zones, intervalSeconds)
+    : [];
+
+  const hrZoneDistribution = hrZones
+    ? computeHrZoneDistribution(records, hrZones, intervalSeconds)
+    : [];
+
+  const paceZoneDistribution = paceZones
+    ? computePaceZoneDistribution(records, paceZones, intervalSeconds)
     : [];
 
   const dynamicsSummary = computeDynamicsSummary(records, capabilities);
+
+  // 8. Weather fetch (async) — skip if no GPS or config.weather === false
+  let weatherSummary: WeatherSummary | null = null;
+  let weatherPerSplit: WeatherPerSplit[] = [];
+  let finalKmSplits: KmSplitRow[] = kmSplits;
+  let finalSegments: SegmentRow[] = segments;
+
+  const gps = extractGpsCoordinates(records);
+  if (gps && config?.weather !== false && !options.noWeather) {
+    const weatherResult = await fetchWeather(gps.lat, gps.lon, summary.date);
+    if (weatherResult) {
+      weatherSummary = weatherResult.summary;
+      weatherPerSplit = interpolateWeatherToSplits(
+        weatherResult.hourlyData,
+        kmSplits,
+        summary.date,
+      );
+      // Merge wind and temperature into km splits
+      finalKmSplits = kmSplits.map((split, i) => {
+        const w = weatherPerSplit[i];
+        return w
+          ? { ...split, windSpeed: w.windSpeed, windDirection: w.windDirection, temperature: w.temperature }
+          : split;
+      });
+      // Merge run-midpoint weather into segments
+      const midWeather = weatherPerSplit[Math.floor(weatherPerSplit.length / 2)];
+      if (midWeather) {
+        finalSegments = segments.map((s) => ({
+          ...s,
+          windSpeed: midWeather.windSpeed,
+          windDirection: midWeather.windDirection,
+          temperature: midWeather.temperature,
+        }));
+      }
+    }
+  }
 
   return {
     metadata: {
       version: ENGINE_VERSION,
       downsample: options.downsample ?? null,
       anomaliesExcluded: options.excludeAnomalies ?? false,
+      fileSampleRate,
     },
     summary,
-    segments,
-    kmSplits,
+    segments: finalSegments,
+    kmSplits: finalKmSplits,
     zoneDistribution,
+    hrZoneDistribution,
+    paceZoneDistribution,
     dynamicsSummary,
+    elevationProfile,
+    weatherSummary,
+    weatherPerSplit,
     anomalies,
     capabilities,
   };

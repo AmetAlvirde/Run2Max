@@ -18,7 +18,7 @@ function filterSegmentRow(
   for (const key of SEGMENT_IDENTITY) result[key] = row[key];
   for (const col of activeColumns) {
     const field = COLUMN_FIELD_MAP[col];
-    result[field] = (row as Record<string, unknown>)[field] ?? null;
+    result[field] = (row as unknown as Record<string, unknown>)[field] ?? null;
   }
   return result;
 }
@@ -31,7 +31,7 @@ function filterKmRow(
   for (const key of KM_IDENTITY) result[key] = row[key];
   for (const col of activeColumns) {
     const field = COLUMN_FIELD_MAP[col];
-    result[field] = (row as Record<string, unknown>)[field] ?? null;
+    result[field] = (row as unknown as Record<string, unknown>)[field] ?? null;
   }
   return result;
 }
@@ -42,12 +42,16 @@ export function formatYaml(
 ): string {
   const out: Record<string, unknown> = { metadata: filtered.metadata };
 
-  if (filtered.summary !== undefined)   out["summary"] = filtered.summary;
-  if (filtered.segments !== undefined)  out["segments"] = filtered.segments.map(r => filterSegmentRow(r, activeColumns));
-  if (filtered.kmSplits !== undefined)  out["kmSplits"] = filtered.kmSplits.map(r => filterKmRow(r, activeColumns));
-  if (filtered.zoneDistribution !== undefined) out["zoneDistribution"] = filtered.zoneDistribution;
+  if (filtered.summary !== undefined)          out["summary"] = filtered.summary;
+  if (filtered.elevationProfile !== undefined) out["elevationProfile"] = filtered.elevationProfile;
+  if (filtered.weatherSummary !== undefined)   out["weatherSummary"] = filtered.weatherSummary;
+  if (filtered.segments !== undefined)         out["segments"] = filtered.segments.map(r => filterSegmentRow(r, activeColumns));
+  if (filtered.kmSplits !== undefined)         out["kmSplits"] = filtered.kmSplits.map(r => filterKmRow(r, activeColumns));
+  if (filtered.zoneDistribution !== undefined)     out["zoneDistribution"] = filtered.zoneDistribution;
+  if (filtered.hrZoneDistribution !== undefined)   out["hrZoneDistribution"] = filtered.hrZoneDistribution;
+  if (filtered.paceZoneDistribution !== undefined) out["paceZoneDistribution"] = filtered.paceZoneDistribution;
   if (filtered.dynamicsSummary !== undefined)  out["dynamicsSummary"] = filtered.dynamicsSummary;
-  if (filtered.anomalies !== undefined) out["anomalies"] = filtered.anomalies;
+  if (filtered.anomalies !== undefined)        out["anomalies"] = filtered.anomalies;
 
   return stringify(camelToSnake(out));
 }

@@ -64,7 +64,7 @@ function buildNormalizedData(recordCount: number) {
 }
 
 const CONFIG: Run2MaxConfig = {
-  zones: [
+  powerZones: [
     { label: "E", name: "Easy", min: 204, max: 233 },
     { label: "M", name: "Marathon", min: 251, max: 260 },
   ],
@@ -108,6 +108,9 @@ describe("quantify", () => {
     // Capabilities
     expect(result.capabilities.hasRunningDynamics).toBe(true);
     expect(result.capabilities.hasStrydEnhanced).toBe(true);
+
+    // Metadata version
+    expect(result.metadata.version).toBe("1.1.0");
 
     // Anomalies (first 3 records have HR=0)
     expect(result.anomalies.length).toBeGreaterThan(0);

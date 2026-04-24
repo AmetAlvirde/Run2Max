@@ -74,6 +74,8 @@ export interface LoadConfigOptions {
   configPath?: string;
   /** Override CWD for project-level config discovery (used in tests). */
   cwd?: string;
+  /** Override user-level config path — defaults to ~/.config/run2max/config.yaml (used in tests). */
+  userConfigPath?: string;
 }
 
 /**
@@ -99,7 +101,7 @@ export async function loadConfig(
   }
 
   const cwd = options?.cwd ?? process.cwd();
-  const userConfigPath = join(homedir(), ".config", "run2max", "config.yaml");
+  const userConfigPath = options?.userConfigPath ?? join(homedir(), ".config", "run2max", "config.yaml");
   const projectConfigPath = join(cwd, "run2max.config.yaml");
 
   const [userRaw, projectRaw] = await Promise.all([

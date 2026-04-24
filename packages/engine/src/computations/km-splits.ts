@@ -6,6 +6,7 @@ import type {
 } from "../types.js";
 import { avg } from "./utils.js";
 import { classifyPowerZone } from "./zones.js";
+import { computeSplitElevation, getAltitude } from "./elevation.js";
 
 const KM_IN_METERS = 1000;
 
@@ -162,6 +163,18 @@ function buildKmSplitRow(
       ? avgFormPower / avgPower
       : null;
 
+  // Elevation
+  const bucketRecords = bucket.map((w) => w.record);
+  const hasAltitudeData = bucketRecords.some((r) => getAltitude(r) !== null);
+  const splitElev = hasAltitudeData ? computeSplitElevation(bucketRecords) : null;
+  const elevGain = splitElev?.gain ?? null;
+  const elevLoss = splitElev?.loss ?? null;
+
+  // Tier 3: air power
+  const avgAirPower = capabilities.hasStrydEnhanced
+    ? weightedAvg(bucket, (r) => r.airPower ?? null)
+    : null;
+
   return {
     km,
     distance: actualDistance,
@@ -177,5 +190,11 @@ function buildKmSplitRow(
     avgVerticalOscillation,
     formPowerRatio,
     verticalRatio,
+    elevGain,
+    elevLoss,
+    avgAirPower,
+    windSpeed: null,
+    windDirection: null,
+    temperature: null,
   };
 }

@@ -94,6 +94,11 @@ export default defineCommand({
       default: false,
       description: "Exclude anomalous records from aggregations",
     },
+    "no-weather": {
+      type: "boolean",
+      default: false,
+      description: "Skip weather fetch even if config has weather enabled",
+    },
   },
 
   async run({ args }) {
@@ -196,6 +201,7 @@ export default defineCommand({
         timezone,
         downsample,
         excludeAnomalies: args["exclude-anomalies"],
+        noWeather: args["no-weather"],
       });
     } catch (err) {
       fatal(
