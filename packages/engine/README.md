@@ -149,3 +149,11 @@ pnpm --filter @run2max/engine exec vitest run
 # With smoke tests against a real .fit file
 FIT_FIXTURE=./fixture-fits/your-run.fit pnpm --filter @run2max/engine exec vitest run
 ```
+
+### Known gap: Tier 1-only smoke test
+
+The smoke tests assume a Stryd `.fit` file (Tier 2 + Tier 3 data present).
+A smoke test that exercises the full pipeline with a Tier 1-only file (no
+running dynamics, no Stryd fields) is pending — waiting on a `.fit` file from
+a non-Stryd device. Until then, tier degradation is covered at the unit level
+by `detect-capabilities.test.ts`.
