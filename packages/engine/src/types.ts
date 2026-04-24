@@ -173,7 +173,12 @@ export type SectionId =
   | "km_splits"
   | "zones"
   | "dynamics"
-  | "anomalies";
+  | "anomalies"
+  | "elevation_profile"
+  | "weather"
+  | "hr_zones"
+  | "pace_zones"
+  | "metadata";
 
 export type ColumnId =
   | "power"
@@ -187,7 +192,12 @@ export type ColumnId =
   | "vo"
   | "vo_balance"
   | "fpr"
-  | "vr";
+  | "vr"
+  | "elev_gain"
+  | "elev_loss"
+  | "air_power"
+  | "wind"
+  | "temp";
 
 export type OutputFormat = "markdown" | "json" | "yaml";
 

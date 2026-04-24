@@ -13,7 +13,7 @@ async function makeTempDir(): Promise<string> {
 }
 
 const minimalYaml = `
-zones:
+power_zones:
   - label: E
     name: Easy
     min: 204
@@ -24,7 +24,7 @@ const userYaml = `
 calibration:
   critical_power: 295
   lthr: 171
-zones:
+power_zones:
   - label: E
     name: Easy
     min: 204
@@ -38,7 +38,7 @@ athlete:
 `;
 
 const projectYaml = `
-zones:
+power_zones:
   - label: E
     name: Easy
     min: 210
@@ -70,7 +70,7 @@ describe("loadConfig", () => {
       // Point configPath directly at the file to avoid ~/.config lookup
       const result = await loadConfig({ configPath: join(dir, "config.yaml") });
       expect(result?.calibration?.criticalPower).toBe(295);
-      expect(result?.zones).toHaveLength(2);
+      expect(result?.powerZones).toHaveLength(2);
       expect(result?.athlete?.timezone).toBe("America/Santiago");
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -82,8 +82,8 @@ describe("loadConfig", () => {
     try {
       await writeFile(join(dir, "run2max.config.yaml"), minimalYaml);
       const result = await loadConfig({ cwd: dir });
-      expect(result?.zones).toHaveLength(1);
-      expect(result?.zones[0].label).toBe("E");
+      expect(result?.powerZones).toHaveLength(1);
+      expect(result?.powerZones[0].label).toBe("E");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -108,7 +108,7 @@ describe("loadConfig", () => {
 calibration:
   critical_power: 295
   lthr: 171
-zones:
+power_zones:
   - label: E
     name: Easy
     min: 210
@@ -123,7 +123,7 @@ output:
       const result = await loadConfig({ cwd: dir });
       expect(result?.calibration?.criticalPower).toBe(295);
       expect(result?.athlete?.timezone).toBe("America/Santiago");
-      expect(result?.zones[0].min).toBe(210); // project value
+      expect(result?.powerZones[0].min).toBe(210); // project value
       expect(result?.output?.default?.skipSegmentsIfSingleLap).toBe(false);
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -138,8 +138,8 @@ output:
       await writeFile(join(dir, "run2max.config.yaml"), projectYaml);
       const result = await loadConfig({ cwd: dir });
       // Project has 1 zone — it replaces, not appends
-      expect(result?.zones).toHaveLength(1);
-      expect(result?.zones[0].min).toBe(210);
+      expect(result?.powerZones).toHaveLength(1);
+      expect(result?.powerZones[0].min).toBe(210);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -154,7 +154,7 @@ output:
       await writeFile(join(dir, "run2max.config.yaml"), userYaml);
       const result = await loadConfig({ configPath: explicitPath, cwd: dir });
       // Should only see the minimal config (1 zone, no calibration)
-      expect(result?.zones).toHaveLength(1);
+      expect(result?.powerZones).toHaveLength(1);
       expect(result?.calibration).toBeUndefined();
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -172,7 +172,7 @@ output:
     try {
       await writeFile(
         join(dir, "run2max.config.yaml"),
-        "zones: []\n" // empty zones array — invalid
+        "power_zones: []\n" // empty power_zones array — invalid
       );
       await expect(loadConfig({ cwd: dir })).rejects.toThrow(/at least one/);
     } finally {
@@ -186,7 +186,7 @@ output:
       await writeFile(
         join(dir, "run2max.config.yaml"),
         `
-zones:
+power_zones:
   - label: E
     name: Easy
     min: 204

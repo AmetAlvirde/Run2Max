@@ -27,7 +27,7 @@ const METADATA: WorkoutMetadata = {
 };
 
 const CONFIG: Run2MaxConfig = {
-  zones: [
+  powerZones: [
     { label: "E", name: "Easy", min: 204, max: 233 },
     { label: "M", name: "Marathon", min: 251, max: 260 },
   ],
@@ -100,7 +100,7 @@ describe("computeSummary", () => {
 
   it("falls back to calibration.lthr when thresholds.lthr missing", () => {
     const configWithCalib: Run2MaxConfig = {
-      zones: CONFIG.zones,
+      powerZones: CONFIG.powerZones,
       calibration: { lthr: 168 },
     };
     const records = [rec({ heartRate: 140 })];
@@ -110,7 +110,7 @@ describe("computeSummary", () => {
   });
 
   it("sets avgHeartRatePctLthr to null when no lthr configured", () => {
-    const configNoLthr: Run2MaxConfig = { zones: CONFIG.zones };
+    const configNoLthr: Run2MaxConfig = { powerZones: CONFIG.powerZones };
     const records = [rec({ heartRate: 140 })];
     const result = computeSummary(records, SESSION, METADATA, configNoLthr, OPTIONS);
 

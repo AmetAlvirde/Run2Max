@@ -59,8 +59,8 @@ export function computeSummary(
 
   // Zone classification
   const avgPowerZone =
-    avgPower != null && config?.zones
-      ? classifyPowerZone(avgPower, config.zones)
+    avgPower != null && config?.powerZones
+      ? classifyPowerZone(avgPower, config.powerZones)
       : null;
 
   // HR as % of LTHR

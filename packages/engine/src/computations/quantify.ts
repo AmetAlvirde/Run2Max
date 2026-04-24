@@ -44,7 +44,7 @@ export async function quantify(
 
   // 6. Resolve config
   const config = options.config;
-  const zones = config?.zones;
+  const zones = config?.powerZones;
   const intervalSeconds = options.downsample ?? 1;
 
   // 7. Compute all analysis components

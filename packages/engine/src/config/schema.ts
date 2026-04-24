@@ -40,6 +40,11 @@ const SECTION_IDS = [
   "zones",
   "dynamics",
   "anomalies",
+  "elevation_profile",
+  "weather",
+  "hr_zones",
+  "pace_zones",
+  "metadata",
 ] as const;
 
 const COLUMN_IDS = [
@@ -55,6 +60,11 @@ const COLUMN_IDS = [
   "vo_balance",
   "fpr",
   "vr",
+  "elev_gain",
+  "elev_loss",
+  "air_power",
+  "wind",
+  "temp",
 ] as const;
 
 const OutputProfileConfigSchema = v.object({
@@ -72,10 +82,20 @@ export const Run2MaxConfigSchema = v.object({
       lthr: v.optional(v.number()),
     })
   ),
-  zones: v.pipe(
+  powerZones: v.pipe(
     v.array(ZoneConfigSchema),
-    v.minLength(1, "zones must contain at least one entry")
+    v.minLength(1, "powerZones must contain at least one entry")
   ),
+  hrZones: v.optional(v.pipe(
+    v.array(ZoneConfigSchema),
+    v.minLength(1, "hrZones must contain at least one entry")
+  )),
+  paceZones: v.optional(v.pipe(
+    v.array(ZoneConfigSchema),
+    v.minLength(1, "paceZones must contain at least one entry")
+  )),
+  weather: v.optional(v.boolean()),
+  units: v.optional(v.literal("metric")),
   thresholds: v.optional(
     v.object({
       lthr: v.optional(v.number()),
