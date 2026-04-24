@@ -76,6 +76,23 @@ export interface RunSummary {
   avgHeartRate: number | null;
   avgHeartRatePctLthr: number | null; // null if no lthr configured
   avgPace: number | null;         // seconds per km
+  // Max values
+  maxHeartRate: number | null;    // instantaneous single-record max
+  maxPower: number | null;        // 5s rolling window peak
+  maxPace: number | null;         // 5s rolling window peak (lower = faster)
+  // Elevation stats
+  totalAscent: number | null;     // meters
+  totalDescent: number | null;    // meters
+  netElevation: number | null;    // ascent - descent
+  minAltitude: number | null;     // meters
+  maxAltitude: number | null;     // meters
+  // Zone labels
+  avgHrZone: string | null;       // HR zone label
+  avgPaceZone: string | null;     // pace zone label
+  // Training load
+  normalizedPower: number | null; // Coggan NP
+  intensityFactor: number | null; // NP/CP (null without CP)
+  runStressScore: number | null;  // Coggan TSS, labeled RSS (r2m)
   // Context metadata
   workout?: string;
   block?: string;
@@ -100,6 +117,14 @@ export interface SegmentRow {
   // Derived
   formPowerRatio: number | null;          // formPower / power (Tier 3)
   verticalRatio: number | null;           // (verticalOscillation / stepLength) * 100 (Tier 2)
+  // Elevation
+  elevGain: number | null;                // meters gained in this split
+  elevLoss: number | null;                // meters lost in this split
+  // Weather / Tier 3
+  avgAirPower: number | null;             // W (Tier 3)
+  windSpeed: number | null;               // km/h (from weather API)
+  windDirection: number | null;           // degrees
+  temperature: number | null;             // Celsius
 }
 
 export interface KmSplitRow {
@@ -119,6 +144,41 @@ export interface KmSplitRow {
   // Derived
   formPowerRatio: number | null;          // formPower / power (Tier 3)
   verticalRatio: number | null;           // (verticalOscillation / stepLength) * 100 (Tier 2)
+  // Elevation
+  elevGain: number | null;                // meters gained in this split
+  elevLoss: number | null;                // meters lost in this split
+  // Weather / Tier 3
+  avgAirPower: number | null;             // W (Tier 3)
+  windSpeed: number | null;               // km/h (from weather API)
+  windDirection: number | null;           // degrees
+  temperature: number | null;             // Celsius
+}
+
+export interface ElevationProfile {
+  totalAscent: number;
+  totalDescent: number;
+  netElevation: number;
+  minAltitude: number;
+  maxAltitude: number;
+  points: [number, number][];     // [distanceKm, altitudeM]
+}
+
+export interface WeatherSummary {
+  temperature: number;
+  humidity: number;
+  dewPoint: number;
+  windSpeed: number;
+  windDirection: number;
+  conditions: string;
+}
+
+export interface WeatherPerSplit {
+  km: number;
+  temperature: number;
+  humidity: number;
+  dewPoint: number;
+  windSpeed: number;
+  windDirection: number;
 }
 
 export interface ZoneDistributionRow {
@@ -158,7 +218,12 @@ export interface AnalysisResult {
   segments: SegmentRow[];
   kmSplits: KmSplitRow[];
   zoneDistribution: ZoneDistributionRow[];
+  hrZoneDistribution: ZoneDistributionRow[];
+  paceZoneDistribution: ZoneDistributionRow[];
   dynamicsSummary: DynamicsSummary | null; // null when no Tier 2/3 data
+  elevationProfile: ElevationProfile | null;
+  weatherSummary: WeatherSummary | null;
+  weatherPerSplit: WeatherPerSplit[];
   anomalies: Anomaly[];
   capabilities: DataCapabilities;
 }
@@ -205,6 +270,7 @@ export interface AnalysisMetadata {
   version: string;
   downsample: number | null;
   anomaliesExcluded: boolean;
+  fileSampleRate: number | null;  // modal interval in seconds
 }
 
 export interface FormatResult {

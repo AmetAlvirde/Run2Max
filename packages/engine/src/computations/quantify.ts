@@ -73,12 +73,18 @@ export async function quantify(
       version: ENGINE_VERSION,
       downsample: options.downsample ?? null,
       anomaliesExcluded: options.excludeAnomalies ?? false,
+      fileSampleRate: null,  // computed in Phase 10
     },
     summary,
     segments,
     kmSplits,
     zoneDistribution,
+    hrZoneDistribution: [],
+    paceZoneDistribution: [],
     dynamicsSummary,
+    elevationProfile: null,
+    weatherSummary: null,
+    weatherPerSplit: [],
     anomalies,
     capabilities,
   };

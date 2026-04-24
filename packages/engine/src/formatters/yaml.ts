@@ -18,7 +18,7 @@ function filterSegmentRow(
   for (const key of SEGMENT_IDENTITY) result[key] = row[key];
   for (const col of activeColumns) {
     const field = COLUMN_FIELD_MAP[col];
-    result[field] = (row as Record<string, unknown>)[field] ?? null;
+    result[field] = (row as unknown as Record<string, unknown>)[field] ?? null;
   }
   return result;
 }
@@ -31,7 +31,7 @@ function filterKmRow(
   for (const key of KM_IDENTITY) result[key] = row[key];
   for (const col of activeColumns) {
     const field = COLUMN_FIELD_MAP[col];
-    result[field] = (row as Record<string, unknown>)[field] ?? null;
+    result[field] = (row as unknown as Record<string, unknown>)[field] ?? null;
   }
   return result;
 }

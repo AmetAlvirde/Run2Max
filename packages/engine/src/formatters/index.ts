@@ -32,6 +32,7 @@ export const DEFAULT_PROFILE: OutputProfileConfig = {
 const ALL_COLUMN_IDS: ColumnId[] = [
   "power", "zone", "pace", "hr", "cadence",
   "gct", "gct_balance", "stride", "vo", "vo_balance", "fpr", "vr",
+  "elev_gain", "elev_loss", "air_power", "wind", "temp",
 ];
 
 // ---------------------------------------------------------------------------

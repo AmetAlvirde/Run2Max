@@ -19,6 +19,7 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
       version: "1.0.0",
       downsample: null,
       anomaliesExcluded: false,
+      fileSampleRate: null,
     },
     summary: {
       date: BASE_DATE,
@@ -31,6 +32,19 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
       avgHeartRate: 140,
       avgHeartRatePctLthr: 81.9,
       avgPace: 409,     // 6:49/km
+      maxHeartRate: null,
+      maxPower: null,
+      maxPace: null,
+      totalAscent: null,
+      totalDescent: null,
+      netElevation: null,
+      minAltitude: null,
+      maxAltitude: null,
+      avgHrZone: null,
+      avgPaceZone: null,
+      normalizedPower: null,
+      intensityFactor: null,
+      runStressScore: null,
       workout: "Recovery Run",
       block: "Build Week 04",
       rpe: 2,
@@ -52,6 +66,12 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
         avgVerticalOscillation: 47,
         formPowerRatio: 0.34,
         verticalRatio: 6.8,
+        elevGain: null,
+        elevLoss: null,
+        avgAirPower: null,
+        windSpeed: null,
+        windDirection: null,
+        temperature: null,
       },
       {
         lapIndex: 1,
@@ -68,6 +88,12 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
         avgVerticalOscillation: 46,
         formPowerRatio: 0.33,
         verticalRatio: 6.7,
+        elevGain: null,
+        elevLoss: null,
+        avgAirPower: null,
+        windSpeed: null,
+        windDirection: null,
+        temperature: null,
       },
     ],
     kmSplits: [
@@ -86,6 +112,12 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
         avgVerticalOscillation: 47,
         formPowerRatio: 0.34,
         verticalRatio: 6.8,
+        elevGain: null,
+        elevLoss: null,
+        avgAirPower: null,
+        windSpeed: null,
+        windDirection: null,
+        temperature: null,
       },
     ],
     zoneDistribution: [
@@ -93,6 +125,11 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
       { label: "M", name: "Marathon", seconds: 148,  percentage: 2.0  },
       { label: "I", name: "Interval", seconds: 0,    percentage: 0.0  }, // must be omitted
     ],
+    hrZoneDistribution: [],
+    paceZoneDistribution: [],
+    elevationProfile: null,
+    weatherSummary: null,
+    weatherPerSplit: [],
     dynamicsSummary: {
       avgStanceTime: 350,
       avgStanceTimeBalance: 49.8,
@@ -180,7 +217,7 @@ describe("formatResult", () => {
 
     it("metadata renders downsample as Ns when set", () => {
       const result = buildResult({
-        metadata: { version: "1.0.0", downsample: 5, anomaliesExcluded: true },
+        metadata: { version: "1.0.0", downsample: 5, anomaliesExcluded: true, fileSampleRate: null },
       });
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).toContain("5s");

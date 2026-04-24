@@ -135,5 +135,12 @@ function buildSegmentRow(
     avgVerticalOscillation,
     formPowerRatio,
     verticalRatio,
+    // New fields — computed in Phase 6
+    elevGain: null,
+    elevLoss: null,
+    avgAirPower: null,
+    windSpeed: null,
+    windDirection: null,
+    temperature: null,
   };
 }

@@ -103,7 +103,7 @@ function renderSegments(result: FilteredResult, activeColumns: ColumnId[]): stri
   ];
 
   const rows = segments.map(seg => {
-    const row = seg as Record<string, unknown>;
+    const row = seg as unknown as Record<string, unknown>;
     return [
       `Split ${(seg.lapIndex + 1)}`,
       fmtDistance(seg.distance),
@@ -127,7 +127,7 @@ function renderKmSplits(result: FilteredResult, activeColumns: ColumnId[]): stri
   ];
 
   const rows = splits.map(split => {
-    const row = split as Record<string, unknown>;
+    const row = split as unknown as Record<string, unknown>;
     return [
       String(split.km),
       fmtDistance(split.distance),
@@ -212,12 +212,18 @@ const SECTION_RENDERERS: Record<
   SectionId,
   (result: FilteredResult, activeColumns: ColumnId[]) => string
 > = {
-  summary:   (r) => renderSummary(r),
-  segments:  (r, cols) => renderSegments(r, cols),
-  km_splits: (r, cols) => renderKmSplits(r, cols),
-  zones:     (r) => renderZones(r),
-  dynamics:  (r) => renderDynamics(r),
-  anomalies: (r) => renderAnomalies(r),
+  summary:           (r) => renderSummary(r),
+  segments:          (r, cols) => renderSegments(r, cols),
+  km_splits:         (r, cols) => renderKmSplits(r, cols),
+  zones:             (r) => renderZones(r),
+  dynamics:          (r) => renderDynamics(r),
+  anomalies:         (r) => renderAnomalies(r),
+  // Stubs — implemented in Phase 8 / Phase 9
+  elevation_profile: () => "",
+  weather:           () => "",
+  hr_zones:          () => "",
+  pace_zones:        () => "",
+  metadata:          (r) => renderMetadata(r),
 };
 
 // ---------------------------------------------------------------------------

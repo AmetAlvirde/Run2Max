@@ -23,6 +23,11 @@ export const COLUMN_HEADERS: Record<ColumnId, string> = {
   vo_balance:  "VO Bal",
   fpr:         "FPR",
   vr:          "VR",
+  elev_gain:   "Elev+",
+  elev_loss:   "Elev-",
+  air_power:   "Air Pwr",
+  wind:        "Wind",
+  temp:        "Temp",
 };
 
 /** Which DataCapabilities flag a column requires. Undefined = always available. */
@@ -34,6 +39,7 @@ export const TIER_REQUIREMENTS: Partial<Record<ColumnId, keyof DataCapabilities>
   vo_balance:  "hasRunningDynamics",
   vr:          "hasRunningDynamics",
   fpr:         "hasStrydEnhanced",
+  air_power:   "hasStrydEnhanced",
 };
 
 /** Maps ColumnId to the field name on SegmentRow / KmSplitRow. */
@@ -50,6 +56,11 @@ export const COLUMN_FIELD_MAP: Record<ColumnId, string> = {
   vo_balance:  "avgVerticalOscillationBalance",
   fpr:         "formPowerRatio",
   vr:          "verticalRatio",
+  elev_gain:   "elevGain",
+  elev_loss:   "elevLoss",
+  air_power:   "avgAirPower",
+  wind:        "windSpeed",
+  temp:        "temperature",
 };
 
 // ---------------------------------------------------------------------------
@@ -168,6 +179,11 @@ export function renderColumnValue(
     case "vo_balance":  return fmtBalance(n);
     case "fpr":         return fmtFPR(n);
     case "vr":          return fmtVR(n);
+    case "elev_gain":   return `+${Math.round(n)} m`;
+    case "elev_loss":   return `-${Math.round(Math.abs(n))} m`;
+    case "air_power":   return fmtPower(n);
+    case "wind":        return `${Math.round(n)} km/h`;
+    case "temp":        return `${Math.round(n)} C`;
     default:            return String(value);
   }
 }
