@@ -1,77 +1,72 @@
 import type { Run2MaxRecord, ZoneConfig, ZoneDistributionRow } from "../types.js";
 
 /**
- * Classify a power value into a zone label.
+ * Classify a numeric value into a zone label.
  *
  * - Within a zone's [min, max] → that zone's label
  * - Below lowest zone → "below <lowest label>"
  * - Above highest zone → "above <highest label>"
  * - In a gap between adjacent zones → "<lower label>→<upper label>"
+ *
+ * Works for any zone type: power, HR, or pace (sec/km).
  */
-export function classifyPowerZone(
-  power: number,
-  zones: ZoneConfig[],
-): string {
+export function classifyZone(value: number, zones: ZoneConfig[]): string {
   const sorted = [...zones].sort((a, b) => a.min - b.min);
 
-  // Check each zone for a direct match
   for (const zone of sorted) {
-    if (power >= zone.min && power <= zone.max) return zone.label;
+    if (value >= zone.min && value <= zone.max) return zone.label;
   }
 
-  // Below all zones
-  if (power < sorted[0].min) return `below ${sorted[0].label}`;
+  if (value < sorted[0]!.min) return `below ${sorted[0]!.label}`;
 
-  // Above all zones
-  if (power > sorted[sorted.length - 1].max)
-    return `above ${sorted[sorted.length - 1].label}`;
+  if (value > sorted[sorted.length - 1]!.max)
+    return `above ${sorted[sorted.length - 1]!.label}`;
 
-  // In a gap between two zones
   for (let i = 0; i < sorted.length - 1; i++) {
-    if (power > sorted[i].max && power < sorted[i + 1].min) {
-      return `${sorted[i].label}\u2192${sorted[i + 1].label}`;
+    if (value > sorted[i]!.max && value < sorted[i + 1]!.min) {
+      return `${sorted[i]!.label}\u2192${sorted[i + 1]!.label}`;
     }
   }
 
   return "unknown";
 }
 
+/** Backward-compat alias — classifyZone works for all zone types. */
+export const classifyPowerZone = classifyZone;
+
 /**
- * Compute time distribution across power zones.
+ * Compute time distribution across zones using a value accessor.
  *
  * - All configured zones always appear (even with 0 seconds)
  * - Gap/out-of-range labels only appear if time > 0
  * - Each record counts as `intervalSeconds` of time
+ * - Records where accessor returns null are skipped
  */
 export function computeZoneDistribution(
   records: Run2MaxRecord[],
   zones: ZoneConfig[],
   intervalSeconds: number,
+  accessor: (r: Run2MaxRecord) => number | null,
 ): ZoneDistributionRow[] {
   const sorted = [...zones].sort((a, b) => a.min - b.min);
 
-  // Accumulate seconds per label
   const timeByLabel = new Map<string, number>();
-
-  // Initialize configured zones to 0
   for (const zone of sorted) {
     timeByLabel.set(zone.label, 0);
   }
 
-  // Classify each record
   for (const record of records) {
-    if (record.power == null) continue;
-    const label = classifyPowerZone(record.power, sorted);
+    const value = accessor(record);
+    if (value == null) continue;
+    const label = classifyZone(value, sorted);
     timeByLabel.set(label, (timeByLabel.get(label) ?? 0) + intervalSeconds);
   }
 
   const totalSeconds = [...timeByLabel.values()].reduce((a, b) => a + b, 0);
-
-  // Build result: configured zones first (in order), then any extras
-  const result: ZoneDistributionRow[] = [];
   const configuredLabels = new Set(sorted.map((z) => z.label));
 
-  // Configured zones — always included
+  const result: ZoneDistributionRow[] = [];
+
   for (const zone of sorted) {
     const seconds = timeByLabel.get(zone.label)!;
     result.push({
@@ -82,7 +77,6 @@ export function computeZoneDistribution(
     });
   }
 
-  // Gap / out-of-range zones — only if time > 0
   for (const [label, seconds] of timeByLabel) {
     if (configuredLabels.has(label)) continue;
     if (seconds === 0) continue;
@@ -95,4 +89,40 @@ export function computeZoneDistribution(
   }
 
   return result;
+}
+
+/** Distribute time across power zones using `record.power`. */
+export function computePowerZoneDistribution(
+  records: Run2MaxRecord[],
+  zones: ZoneConfig[],
+  intervalSeconds: number,
+): ZoneDistributionRow[] {
+  return computeZoneDistribution(records, zones, intervalSeconds, (r) => r.power ?? null);
+}
+
+/** Distribute time across HR zones using `record.heartRate`. */
+export function computeHrZoneDistribution(
+  records: Run2MaxRecord[],
+  zones: ZoneConfig[],
+  intervalSeconds: number,
+): ZoneDistributionRow[] {
+  return computeZoneDistribution(records, zones, intervalSeconds, (r) => r.heartRate ?? null);
+}
+
+/**
+ * Distribute time across pace zones using `record.speed`.
+ * Speed (m/s) is converted to pace (sec/km) via `1000 / speed`.
+ * Records with null or zero speed are skipped.
+ */
+export function computePaceZoneDistribution(
+  records: Run2MaxRecord[],
+  zones: ZoneConfig[],
+  intervalSeconds: number,
+): ZoneDistributionRow[] {
+  return computeZoneDistribution(
+    records,
+    zones,
+    intervalSeconds,
+    (r) => r.speed != null && r.speed > 0 ? 1000 / r.speed : null,
+  );
 }

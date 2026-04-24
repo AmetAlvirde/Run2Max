@@ -10,7 +10,7 @@ import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
 import { computeSegments } from "./segments.js";
 import { computeKmSplits } from "./km-splits.js";
-import { computeZoneDistribution } from "./zones.js";
+import { computePowerZoneDistribution } from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
 
 /**
@@ -63,7 +63,7 @@ export async function quantify(
   const kmSplits = computeKmSplits(records, zones, capabilities);
 
   const zoneDistribution = zones
-    ? computeZoneDistribution(records, zones, intervalSeconds)
+    ? computePowerZoneDistribution(records, zones, intervalSeconds)
     : [];
 
   const dynamicsSummary = computeDynamicsSummary(records, capabilities);
