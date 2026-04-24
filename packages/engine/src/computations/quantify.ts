@@ -4,6 +4,7 @@ import {
   downsampleRecords,
 } from "normalize-fit-file";
 import type { AnalysisResult, QuantifyOptions, Run2MaxRecord } from "../types.js";
+import { ENGINE_VERSION } from "../index.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
@@ -11,8 +12,6 @@ import { computeSegments } from "./segments.js";
 import { computeKmSplits } from "./km-splits.js";
 import { computeZoneDistribution } from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
-
-const ENGINE_VERSION = "0.0.1";
 
 /**
  * Main engine entry point. Takes a raw .fit file buffer and produces

@@ -16,7 +16,7 @@ const BASE_DATE = new Date("2026-04-12T08:20:00Z"); // Sunday in UTC
 function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
   return {
     metadata: {
-      version: "0.0.1",
+      version: "1.0.0",
       downsample: null,
       anomaliesExcluded: false,
     },
@@ -173,14 +173,14 @@ describe("formatResult", () => {
 
     it("metadata renders version, downsample=none, anomalies=included", () => {
       const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
-      expect(output).toContain("run2max v0.0.1");
+      expect(output).toContain("run2max v1.0.0");
       expect(output).toContain("none");
       expect(output).toContain("included");
     });
 
     it("metadata renders downsample as Ns when set", () => {
       const result = buildResult({
-        metadata: { version: "0.0.1", downsample: 5, anomaliesExcluded: true },
+        metadata: { version: "1.0.0", downsample: 5, anomaliesExcluded: true },
       });
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).toContain("5s");
@@ -369,7 +369,7 @@ describe("formatResult", () => {
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed["metadata"]).toBeDefined();
       const meta = parsed["metadata"] as Record<string, unknown>;
-      expect(meta["version"]).toBe("0.0.1");
+      expect(meta["version"]).toBe("1.0.0");
       expect(meta["downsample"]).toBeNull();
       expect(meta["anomaliesExcluded"]).toBe(false);
     });

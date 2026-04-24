@@ -56,7 +56,7 @@ describe("loadConfig", () => {
   it("returns null when no config files exist", async () => {
     const dir = await makeTempDir();
     try {
-      const result = await loadConfig({ cwd: dir });
+      const result = await loadConfig({ cwd: dir, userConfigPath: join(dir, "no-user-config.yaml") });
       expect(result).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });

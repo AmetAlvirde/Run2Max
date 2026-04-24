@@ -109,6 +109,9 @@ describe("quantify", () => {
     expect(result.capabilities.hasRunningDynamics).toBe(true);
     expect(result.capabilities.hasStrydEnhanced).toBe(true);
 
+    // Metadata version
+    expect(result.metadata.version).toBe("1.0.0");
+
     // Anomalies (first 3 records have HR=0)
     expect(result.anomalies.length).toBeGreaterThan(0);
     expect(result.anomalies[0].field).toBe("heartRate");
