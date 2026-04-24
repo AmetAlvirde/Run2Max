@@ -1,6 +1,6 @@
 {
   "name": "@run2max/cli",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "bin": {
     "run2max": "./dist/index.js"
