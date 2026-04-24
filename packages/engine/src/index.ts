@@ -1,4 +1,4 @@
-export const ENGINE_VERSION = "1.0.0";
+export const ENGINE_VERSION = "1.1.0";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -18,6 +18,9 @@ export type {
   Run2MaxConfig,
   ZoneConfig,
   OutputProfileConfig,
+  ElevationProfile,
+  WeatherSummary,
+  WeatherPerSplit,
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -38,12 +41,14 @@ export { quantify } from "./computations/quantify.js";
 // Computation utilities (useful for direct consumption / testing)
 // ---------------------------------------------------------------------------
 
-export { classifyPowerZone, computeZoneDistribution } from "./computations/zones.js";
+export { classifyZone, classifyPowerZone, computeZoneDistribution } from "./computations/zones.js";
 export { computeSegments } from "./computations/segments.js";
 export { computeKmSplits } from "./computations/km-splits.js";
 export { computeDynamicsSummary } from "./computations/dynamics.js";
 export { computeSummary } from "./computations/summary.js";
 export { detectAnomalies, applyAnomalyExclusions } from "./computations/anomalies.js";
+export { computeElevationProfile } from "./computations/elevation.js";
+export { computeNormalizedPower } from "./computations/utils.js";
 
 // ---------------------------------------------------------------------------
 // Formatters
