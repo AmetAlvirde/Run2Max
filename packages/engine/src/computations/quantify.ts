@@ -18,8 +18,14 @@ import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
 import { computeSegments } from "./segments.js";
 import { computeKmSplits } from "./km-splits.js";
-import { computePowerZoneDistribution } from "./zones.js";
+import {
+  computePowerZoneDistribution,
+  computeHrZoneDistribution,
+  computePaceZoneDistribution,
+} from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
+import { computeElevationProfile } from "./elevation.js";
+import { computeFileSampleRate } from "./utils.js";
 import {
   extractGpsCoordinates,
   fetchWeather,
@@ -38,8 +44,9 @@ export async function quantify(
   const rawData = await parseFitBuffer(fitBuffer);
   const normalized = normalizeFFP(rawData);
 
-  // 2. Cast records and detect capabilities
+  // 2. Cast records, compute file sample rate (before downsampling), detect capabilities
   let records = normalized.records as Run2MaxRecord[];
+  const fileSampleRate = computeFileSampleRate(records);
   const capabilities = detectCapabilities(records);
 
   // 3. Downsample if requested
@@ -58,6 +65,8 @@ export async function quantify(
   // 6. Resolve config
   const config = options.config;
   const zones = config?.powerZones;
+  const hrZones = config?.hrZones;
+  const paceZones = config?.paceZones;
   const intervalSeconds = options.downsample ?? 1;
 
   // 7. Compute all analysis components
@@ -69,6 +78,8 @@ export async function quantify(
     options,
   );
 
+  const elevationProfile = computeElevationProfile(records, normalized.session);
+
   const segments = zones
     ? computeSegments(records, normalized.laps, zones, capabilities)
     : [];
@@ -77,6 +88,14 @@ export async function quantify(
 
   const zoneDistribution = zones
     ? computePowerZoneDistribution(records, zones, intervalSeconds)
+    : [];
+
+  const hrZoneDistribution = hrZones
+    ? computeHrZoneDistribution(records, hrZones, intervalSeconds)
+    : [];
+
+  const paceZoneDistribution = paceZones
+    ? computePaceZoneDistribution(records, paceZones, intervalSeconds)
     : [];
 
   const dynamicsSummary = computeDynamicsSummary(records, capabilities);
@@ -122,16 +141,16 @@ export async function quantify(
       version: ENGINE_VERSION,
       downsample: options.downsample ?? null,
       anomaliesExcluded: options.excludeAnomalies ?? false,
-      fileSampleRate: null,  // computed in Phase 10
+      fileSampleRate,
     },
     summary,
     segments: finalSegments,
     kmSplits: finalKmSplits,
     zoneDistribution,
-    hrZoneDistribution: [],
-    paceZoneDistribution: [],
+    hrZoneDistribution,
+    paceZoneDistribution,
     dynamicsSummary,
-    elevationProfile: null,
+    elevationProfile,
     weatherSummary,
     weatherPerSplit,
     anomalies,
