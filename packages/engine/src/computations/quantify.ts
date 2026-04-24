@@ -3,7 +3,15 @@ import {
   normalizeFFP,
   downsampleRecords,
 } from "normalize-fit-file";
-import type { AnalysisResult, QuantifyOptions, Run2MaxRecord } from "../types.js";
+import type {
+  AnalysisResult,
+  QuantifyOptions,
+  Run2MaxRecord,
+  WeatherSummary,
+  WeatherPerSplit,
+  SegmentRow,
+  KmSplitRow,
+} from "../types.js";
 import { ENGINE_VERSION } from "../index.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
@@ -12,6 +20,11 @@ import { computeSegments } from "./segments.js";
 import { computeKmSplits } from "./km-splits.js";
 import { computePowerZoneDistribution } from "./zones.js";
 import { computeDynamicsSummary } from "./dynamics.js";
+import {
+  extractGpsCoordinates,
+  fetchWeather,
+  interpolateWeatherToSplits,
+} from "./weather.js";
 
 /**
  * Main engine entry point. Takes a raw .fit file buffer and produces
@@ -68,6 +81,42 @@ export async function quantify(
 
   const dynamicsSummary = computeDynamicsSummary(records, capabilities);
 
+  // 8. Weather fetch (async) — skip if no GPS or config.weather === false
+  let weatherSummary: WeatherSummary | null = null;
+  let weatherPerSplit: WeatherPerSplit[] = [];
+  let finalKmSplits: KmSplitRow[] = kmSplits;
+  let finalSegments: SegmentRow[] = segments;
+
+  const gps = extractGpsCoordinates(records);
+  if (gps && config?.weather !== false) {
+    const weatherResult = await fetchWeather(gps.lat, gps.lon, summary.date);
+    if (weatherResult) {
+      weatherSummary = weatherResult.summary;
+      weatherPerSplit = interpolateWeatherToSplits(
+        weatherResult.hourlyData,
+        kmSplits,
+        summary.date,
+      );
+      // Merge wind and temperature into km splits
+      finalKmSplits = kmSplits.map((split, i) => {
+        const w = weatherPerSplit[i];
+        return w
+          ? { ...split, windSpeed: w.windSpeed, windDirection: w.windDirection, temperature: w.temperature }
+          : split;
+      });
+      // Merge run-midpoint weather into segments
+      const midWeather = weatherPerSplit[Math.floor(weatherPerSplit.length / 2)];
+      if (midWeather) {
+        finalSegments = segments.map((s) => ({
+          ...s,
+          windSpeed: midWeather.windSpeed,
+          windDirection: midWeather.windDirection,
+          temperature: midWeather.temperature,
+        }));
+      }
+    }
+  }
+
   return {
     metadata: {
       version: ENGINE_VERSION,
@@ -76,15 +125,15 @@ export async function quantify(
       fileSampleRate: null,  // computed in Phase 10
     },
     summary,
-    segments,
-    kmSplits,
+    segments: finalSegments,
+    kmSplits: finalKmSplits,
     zoneDistribution,
     hrZoneDistribution: [],
     paceZoneDistribution: [],
     dynamicsSummary,
     elevationProfile: null,
-    weatherSummary: null,
-    weatherPerSplit: [],
+    weatherSummary,
+    weatherPerSplit,
     anomalies,
     capabilities,
   };
