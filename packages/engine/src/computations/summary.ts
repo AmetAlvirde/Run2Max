@@ -5,8 +5,9 @@ import type {
   QuantifyOptions,
   Run2MaxConfig,
 } from "../types.js";
-import { avg } from "./utils.js";
-import { classifyPowerZone } from "./zones.js";
+import { avg, rollingWindowPeak, rollingWindowMin, computeNormalizedPower } from "./utils.js";
+import { classifyPowerZone, classifyZone } from "./zones.js";
+import { computeElevationProfile } from "./elevation.js";
 
 /**
  * Get the distance value from a record, preferring strydDistance.
@@ -76,6 +77,43 @@ export function computeSummary(
       ? movingTime / (distance / 1000)
       : null;
 
+  // Max values
+  const hrValues = records.map((r) => r.heartRate ?? null).filter((v): v is number => v !== null);
+  const maxHeartRate = hrValues.length > 0 ? Math.max(...hrValues) : null;
+  const maxPower = rollingWindowPeak(records.map((r) => r.power ?? null), 5);
+  const paceValues = records.map((r) =>
+    r.speed != null && r.speed > 0 ? 1000 / r.speed : null,
+  );
+  const maxPace = rollingWindowMin(paceValues, 5);
+
+  // Elevation stats
+  const elevProfile = computeElevationProfile(records, session);
+  const totalAscent = elevProfile?.totalAscent ?? null;
+  const totalDescent = elevProfile?.totalDescent ?? null;
+  const netElevation = elevProfile?.netElevation ?? null;
+  const minAltitude = elevProfile?.minAltitude ?? null;
+  const maxAltitude = elevProfile?.maxAltitude ?? null;
+
+  // Zone labels
+  const avgHrZone =
+    avgHeartRate != null && config?.hrZones
+      ? classifyZone(avgHeartRate, config.hrZones)
+      : null;
+  const avgPaceZone =
+    avgPace != null && config?.paceZones
+      ? classifyZone(avgPace, config.paceZones)
+      : null;
+
+  // Training load: NP / IF / RSS
+  const normalizedPower = computeNormalizedPower(records.map((r) => r.power ?? null), 30);
+  const cp = config?.calibration?.criticalPower ?? null;
+  const intensityFactor =
+    normalizedPower != null && cp != null ? normalizedPower / cp : null;
+  const runStressScore =
+    normalizedPower != null && intensityFactor != null && cp != null
+      ? (movingTime * normalizedPower * intensityFactor) / (cp * 3600) * 100
+      : null;
+
   return {
     date,
     timezone,
@@ -87,20 +125,19 @@ export function computeSummary(
     avgHeartRate,
     avgHeartRatePctLthr,
     avgPace,
-    // New fields — computed in Phase 6
-    maxHeartRate: null,
-    maxPower: null,
-    maxPace: null,
-    totalAscent: null,
-    totalDescent: null,
-    netElevation: null,
-    minAltitude: null,
-    maxAltitude: null,
-    avgHrZone: null,
-    avgPaceZone: null,
-    normalizedPower: null,
-    intensityFactor: null,
-    runStressScore: null,
+    maxHeartRate,
+    maxPower,
+    maxPace,
+    totalAscent,
+    totalDescent,
+    netElevation,
+    minAltitude,
+    maxAltitude,
+    avgHrZone,
+    avgPaceZone,
+    normalizedPower,
+    intensityFactor,
+    runStressScore,
     workout: options.workout,
     block: options.block,
     rpe: options.rpe,

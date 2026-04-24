@@ -187,4 +187,61 @@ describe("computeKmSplits", () => {
     // Last split should be a partial km
     expect(splits[1].distance).toBeLessThan(1000);
   });
+
+  // ---------------------------------------------------------------------------
+  // Elevation
+  // ---------------------------------------------------------------------------
+
+  it("computes elevGain and elevLoss within each km", () => {
+    const records = [
+      rec(0, { enhancedAltitude: 200 }),
+      rec(250, { enhancedAltitude: 205 }),
+      rec(500, { enhancedAltitude: 210 }),
+      rec(750, { enhancedAltitude: 215 }),
+      rec(1000, { enhancedAltitude: 220 }),
+      rec(1250, { enhancedAltitude: 215 }),
+      rec(1500, { enhancedAltitude: 205 }),
+    ];
+    const splits = computeKmSplits(records, ZONES, TIER1_ONLY);
+
+    // Bucket 1: [0,250,500,750,1000] → altitudes [200,205,210,215,220] = +20 gain
+    expect(splits[0].elevGain).toBeCloseTo(20);
+    expect(splits[0].elevLoss).toBeCloseTo(0);
+    // Bucket 2: [1250,1500] → altitudes [215,205] = -10 loss
+    expect(splits[1].elevGain).toBeCloseTo(0);
+    expect(splits[1].elevLoss).toBeCloseTo(10);
+  });
+
+  it("returns null elevGain/elevLoss when no altitude data", () => {
+    const records = generateRecords(1500, 5); // no altitude
+    const splits = computeKmSplits(records, ZONES, TIER1_ONLY);
+
+    expect(splits[0].elevGain).toBeNull();
+    expect(splits[0].elevLoss).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------
+  // avgAirPower (Tier 3)
+  // ---------------------------------------------------------------------------
+
+  it("computes avgAirPower when hasStrydEnhanced is true", () => {
+    const records = generateRecords(1200, 5, { airPower: 15 });
+    const splits = computeKmSplits(records, ZONES, ALL_TIERS);
+
+    expect(splits[0].avgAirPower).toBeCloseTo(15);
+  });
+
+  it("sets avgAirPower to null when hasStrydEnhanced is false", () => {
+    const records = generateRecords(1200, 5, { airPower: 15 });
+    const splits = computeKmSplits(records, ZONES, TIER1_ONLY);
+
+    expect(splits[0].avgAirPower).toBeNull();
+  });
+
+  it("sets avgAirPower to null when records have no airPower", () => {
+    const records = generateRecords(1200, 5); // no airPower
+    const splits = computeKmSplits(records, ZONES, ALL_TIERS);
+
+    expect(splits[0].avgAirPower).toBeNull();
+  });
 });
