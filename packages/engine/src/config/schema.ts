@@ -74,6 +74,7 @@ const OutputProfileConfigSchema = v.object({
 });
 
 export const Run2MaxConfigSchema = v.object({
+  schemaVersion: v.literal(1),
   calibration: v.optional(
     v.object({
       date: v.optional(v.string()),
