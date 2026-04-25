@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import { parseConfig } from "./schema.js";
 
 const minimalConfig = {
+  schema_version: 1,
   power_zones: [{ label: "E", name: "Easy", min: 204, max: 233 }],
 };
 
 const fullConfig = {
+  schema_version: 1,
   calibration: {
     date: "2026-02-01",
     source: "RECON block",
@@ -63,7 +65,7 @@ describe("parseConfig", () => {
   });
 
   it("throws when powerZones is an empty array", () => {
-    expect(() => parseConfig({ power_zones: [] })).toThrow(/at least one/);
+    expect(() => parseConfig({ schema_version: 1, power_zones: [] })).toThrow(/at least one/);
   });
 
   it("throws when a zone is missing required fields", () => {
@@ -160,5 +162,22 @@ describe("parseConfig", () => {
     expect(result.output?.default?.columns).toContain("air_power");
     expect(result.output?.default?.columns).toContain("wind");
     expect(result.output?.default?.columns).toContain("temp");
+  });
+
+  // ── schemaVersion ─────────────────────────────────────────────────────────
+
+  it("accepts config with schemaVersion: 1", () => {
+    const result = parseConfig(minimalConfig);
+    expect(result.schemaVersion).toBe(1);
+  });
+
+  it("throws when schemaVersion is missing", () => {
+    const { schema_version: _, ...withoutVersion } = minimalConfig;
+    expect(() => parseConfig(withoutVersion)).toThrow();
+  });
+
+  it("throws when schemaVersion is not 1", () => {
+    expect(() => parseConfig({ ...minimalConfig, schema_version: 2 })).toThrow();
+    expect(() => parseConfig({ ...minimalConfig, schema_version: 0 })).toThrow();
   });
 });

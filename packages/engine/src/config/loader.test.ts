@@ -13,6 +13,7 @@ async function makeTempDir(): Promise<string> {
 }
 
 const minimalYaml = `
+schema_version: 1
 power_zones:
   - label: E
     name: Easy
@@ -21,6 +22,7 @@ power_zones:
 `;
 
 const userYaml = `
+schema_version: 1
 calibration:
   critical_power: 295
   lthr: 171
@@ -38,6 +40,7 @@ athlete:
 `;
 
 const projectYaml = `
+schema_version: 1
 power_zones:
   - label: E
     name: Easy
@@ -105,6 +108,7 @@ describe("loadConfig", () => {
       // Workaround: write the merged scenario as the project config
       // and verify the output shape is correct.
       const mergedYaml = `
+schema_version: 1
 calibration:
   critical_power: 295
   lthr: 171
@@ -172,7 +176,7 @@ output:
     try {
       await writeFile(
         join(dir, "run2max.config.yaml"),
-        "power_zones: []\n" // empty power_zones array — invalid
+        "schema_version: 1\npower_zones: []\n" // empty power_zones array — invalid
       );
       await expect(loadConfig({ cwd: dir })).rejects.toThrow(/at least one/);
     } finally {
@@ -186,6 +190,7 @@ output:
       await writeFile(
         join(dir, "run2max.config.yaml"),
         `
+schema_version: 1
 power_zones:
   - label: E
     name: Easy
