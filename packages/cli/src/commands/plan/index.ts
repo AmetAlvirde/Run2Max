@@ -7,6 +7,7 @@ export default defineCommand({
   },
   subCommands: {
     create: () => import("./create.js").then((m) => m.default),
+    status: () => import("./status.js").then((m) => m.default),
     validate: () => import("./validate.js").then((m) => m.default),
   },
 });
