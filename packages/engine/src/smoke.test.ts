@@ -127,6 +127,7 @@ describe("smoke — real .fit file", () => {
       const ab = nodeBufferToArrayBuffer(buf);
 
       const config = {
+        schemaVersion: 1 as const,
         powerZones: [
           { label: "E", name: "Easy", min: 204, max: 233 },
           { label: "M", name: "Marathon", min: 251, max: 260 },
