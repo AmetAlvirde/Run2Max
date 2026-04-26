@@ -23,7 +23,13 @@ importers:
       citty:
         specifier: ^0.1.6
         version: 0.1.6
+      yaml:
+        specifier: ^2.7.0
+        version: 2.8.3
     devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)

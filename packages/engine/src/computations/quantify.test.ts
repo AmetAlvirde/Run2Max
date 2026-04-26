@@ -64,6 +64,7 @@ function buildNormalizedData(recordCount: number) {
 }
 
 const CONFIG: Run2MaxConfig = {
+  schemaVersion: 1,
   powerZones: [
     { label: "E", name: "Easy", min: 204, max: 233 },
     { label: "M", name: "Marathon", min: 251, max: 260 },

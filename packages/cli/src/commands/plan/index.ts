@@ -6,6 +6,7 @@ export default defineCommand({
     description: "Manage and inspect training plan",
   },
   subCommands: {
+    create: () => import("./create.js").then((m) => m.default),
     validate: () => import("./validate.js").then((m) => m.default),
   },
 });
