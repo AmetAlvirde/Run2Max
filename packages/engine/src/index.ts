@@ -74,6 +74,8 @@ export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan, loadUserTemplates, resolveTemplate } from "./plan/loader.js";
 export { buildPlanFromTemplate } from "./plan/build.js";
 export type { BuildPlanOptions } from "./plan/build.js";
+export { reconcile } from "./plan/reconcile.js";
+export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates

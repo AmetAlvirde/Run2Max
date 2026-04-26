@@ -8,6 +8,7 @@ import {
   resolveTemplate,
   BUILTIN_TEMPLATES,
   validatePlan,
+  reconcile,
   type Plan,
 } from "@run2max/engine";
 
@@ -64,6 +65,11 @@ export default defineCommand({
       description: "Race date (YYYY-MM-DD)",
       required: false,
     },
+    strategy: {
+      type: "string",
+      description: "Compression strategy name or number (e.g. shorten-taper, 1, shorten-taper+shorten-fractal)",
+      required: false,
+    },
     dir: {
       type: "string",
       description: "Output directory (defaults to current directory)",
@@ -97,18 +103,65 @@ export default defineCommand({
     }
 
     let plan: Plan;
-    try {
-      plan = buildPlanFromTemplate(resolved, {
-        block: args.block,
+
+    if (args.raceDate) {
+      const result = reconcile({
+        template: resolved,
         start: args.start,
+        raceDate: args.raceDate,
+        block: args.block,
         goal: args.goal,
         distance: args.distance,
-        raceDate: args.raceDate,
+        strategy: args.strategy,
       });
-    } catch (err) {
-      console.error(`error: ${(err as Error).message}`);
-      process.exit(1);
-      return;
+
+      if (result.fit === "overflow") {
+        process.stderr.write(
+          `error: template "${resolved.name}" (${result.templateWeeks} weeks) does not fit in the available window ` +
+            `(${result.availableWeeks} weeks from ${args.start} to ${args.raceDate}). ` +
+            `Need to remove ${result.templateWeeks - result.availableWeeks} week(s).\n\n`
+        );
+        process.stderr.write(`compression options:\n`);
+        for (let i = 0; i < result.options.length; i++) {
+          const opt = result.options[i]!;
+          const warnings = opt.warnings.length > 0 ? ` [warning: ${opt.warnings.join("; ")}]` : "";
+          process.stderr.write(
+            `  ${i + 1}. ${opt.strategies.join("+")} — removes ${opt.weeksRemoved} week(s)${warnings}\n`
+          );
+        }
+        process.stderr.write(
+          `\nRe-run with --strategy <name or number> to apply a compression strategy.\n`
+        );
+        process.exit(1);
+        return;
+      }
+
+      if (result.fit === "underflow") {
+        const gapWeeks = result.availableWeeks - result.templateWeeks;
+        process.stderr.write(
+          `warning: template "${resolved.name}" is ${gapWeeks} week(s) shorter than the available window. ` +
+            `Plan starts ${result.plan!.start} (consider adding a bridge block to fill the gap).\n`
+        );
+      } else {
+        process.stderr.write(
+          `Race date aligns with template (${result.templateWeeks} weeks, no adjustments needed)\n`
+        );
+      }
+
+      plan = result.plan!;
+    } else {
+      try {
+        plan = buildPlanFromTemplate(resolved, {
+          block: args.block,
+          start: args.start,
+          goal: args.goal,
+          distance: args.distance,
+        });
+      } catch (err) {
+        console.error(`error: ${(err as Error).message}`);
+        process.exit(1);
+        return;
+      }
     }
 
     const diagnostics = validatePlan(plan);
