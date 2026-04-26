@@ -76,6 +76,8 @@ export { buildPlanFromTemplate } from "./plan/build.js";
 export type { BuildPlanOptions } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
 export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
+export { getPlanStatus, formatDefaultView, formatFullView } from "./plan/status.js";
+export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker } from "./plan/status.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates
