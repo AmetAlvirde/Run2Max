@@ -184,6 +184,62 @@ output:
     }
   });
 
+  it("loads microcycle and custom sections from YAML", async () => {
+    const dir = await makeTempDir();
+    try {
+      await writeFile(
+        join(dir, "run2max.config.yaml"),
+        `
+schema_version: 1
+power_zones:
+  - label: E
+    name: Easy
+    min: 204
+    max: 233
+microcycle:
+  week_start: monday
+  default:
+    monday: easy_strides
+    tuesday: workout
+    wednesday: easy
+    thursday: workout
+    friday: rest
+    saturday: long
+    sunday: rest
+  overrides:
+    D:
+      monday: rest
+      tuesday: easy
+      wednesday: rest
+      thursday: easy
+      friday: rest
+      saturday: easy
+      sunday: rest
+custom:
+  week_types:
+    - id: SHOCK
+      name: Shock Week
+  day_types:
+    - id: double
+      name: Double Run Day
+  reasons:
+    - family_event
+    - travel
+`
+      );
+      const result = await loadConfig({ cwd: dir });
+      expect(result?.microcycle?.weekStart).toBe("monday");
+      expect(result?.microcycle?.default.monday).toBe("easy_strides");
+      expect(result?.microcycle?.default.sunday).toBe("rest");
+      expect(result?.microcycle?.overrides?.["D"]?.monday).toBe("rest");
+      expect(result?.custom?.weekTypes![0]!.id).toBe("SHOCK");
+      expect(result?.custom?.dayTypes![0]!.id).toBe("double");
+      expect(result?.custom?.reasons).toEqual(["family_event", "travel"]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("transforms snake_case keys from YAML", async () => {
     const dir = await makeTempDir();
     try {
