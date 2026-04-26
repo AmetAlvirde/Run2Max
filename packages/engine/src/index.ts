@@ -80,6 +80,8 @@ export { getPlanStatus, formatDefaultView, formatFullView } from "./plan/status.
 export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker } from "./plan/status.js";
 export { syncWeek, SyncError } from "./plan/sync.js";
 export type { SyncData } from "./plan/sync.js";
+export { adjustPlan, AdjustError } from "./plan/adjust.js";
+export type { AdjustOptions, AdjustResult } from "./plan/adjust.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates
