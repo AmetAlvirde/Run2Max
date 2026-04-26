@@ -9,6 +9,7 @@ export default defineCommand({
     create: () => import("./create.js").then((m) => m.default),
     status: () => import("./status.js").then((m) => m.default),
     sync: () => import("./sync.js").then((m) => m.default),
+    adjust: () => import("./adjust.js").then((m) => m.default),
     validate: () => import("./validate.js").then((m) => m.default),
   },
 });
