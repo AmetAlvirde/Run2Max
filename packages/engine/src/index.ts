@@ -78,6 +78,8 @@ export { reconcile } from "./plan/reconcile.js";
 export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
 export { getPlanStatus, formatDefaultView, formatFullView } from "./plan/status.js";
 export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker } from "./plan/status.js";
+export { syncWeek, SyncError } from "./plan/sync.js";
+export type { SyncData } from "./plan/sync.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates
