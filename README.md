@@ -28,7 +28,8 @@ run2max quantify my-run.fit
 ```
 
 See [`packages/cli/README.md`](packages/cli/README.md) for the full CLI
-reference including flags, config, and output format.
+reference including flags, config, output format, and plan commands (`create`,
+`status`, `sync`, `adjust`, `validate`).
 
 ## Monorepo structure
 
