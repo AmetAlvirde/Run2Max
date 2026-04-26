@@ -1,5 +1,6 @@
 import type { RecordData } from "normalize-fit-file";
 import type { Run2MaxConfig } from "./config/schema.js";
+import type { Plan } from "./plan/schema.js";
 export type { Run2MaxConfig, ZoneConfig, OutputProfileConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------
@@ -60,6 +61,14 @@ export interface QuantifyOptions {
   downsample?: number;
   excludeAnomalies?: boolean;
   noWeather?: boolean;  // CLI --no-weather flag; overrides config.weather
+  /** Parsed plan.yaml for periodization context enrichment. */
+  plan?: Plan;
+  /**
+   * Directory containing .fit files for this training block.
+   * Used to count completed runs in the current week.
+   * Defaults to the current working directory when plan is provided.
+   */
+  fitDirPath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +236,28 @@ export interface AnalysisResult {
   weatherPerSplit: WeatherPerSplit[];
   anomalies: Anomaly[];
   capabilities: DataCapabilities;
+  /** Periodization context from plan.yaml. Undefined when no plan is present. */
+  planContext?: PlanContext;
+}
+
+// ---------------------------------------------------------------------------
+// Plan context (added to AnalysisResult when a plan.yaml is present)
+// ---------------------------------------------------------------------------
+
+export interface PlanContext {
+  block: string;
+  goal?: string;
+  weekNumber: number;
+  totalWeeks: number;
+  weekType: string;
+  mesocycle: string;
+  fractalIndex: number;
+  totalFractals: number;
+  weekProgress?: {
+    completed: number;
+    expected: number;
+    runs: string[];
+  };
 }
 
 // ---------------------------------------------------------------------------

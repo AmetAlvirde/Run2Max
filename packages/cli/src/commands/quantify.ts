@@ -1,12 +1,14 @@
 import { defineCommand } from "citty";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import {
   loadConfig,
+  loadPlan,
   quantify,
   formatResult,
   DEFAULT_PROFILE,
 } from "@run2max/engine";
-import type { OutputFormat, OutputProfileConfig } from "@run2max/engine";
+import type { OutputFormat, OutputProfileConfig, Plan } from "@run2max/engine";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,6 +101,11 @@ export default defineCommand({
       default: false,
       description: "Skip weather fetch even if config has weather enabled",
     },
+    plan: {
+      type: "string",
+      description:
+        "Path to plan.yaml or directory containing plan.yaml. Auto-discovered from the .fit file's directory when absent.",
+    },
   },
 
   async run({ args }) {
@@ -189,6 +196,34 @@ export default defineCommand({
     // ---- Resolve timezone
     const timezone = args.timezone ?? config?.athlete?.timezone;
 
+    // ---- Discover and load plan.yaml (silent when absent)
+    const fitDir = resolve(dirname(args.file));
+    let plan: Plan | undefined;
+    if (args.plan) {
+      // --plan can be a file path or a directory path
+      const planArg = resolve(args.plan);
+      let planPath: string;
+      try {
+        const s = await stat(planArg);
+        planPath = s.isDirectory() ? join(planArg, "plan.yaml") : planArg;
+      } catch {
+        fatal(`Cannot access --plan path "${args.plan}"`);
+      }
+      try {
+        plan = await loadPlan(planPath!);
+      } catch (err) {
+        fatal(`Could not load plan: ${(err as Error).message}`);
+      }
+    } else {
+      // Auto-discover plan.yaml in the same directory as the .fit file
+      const autoPlanPath = join(fitDir, "plan.yaml");
+      try {
+        plan = await loadPlan(autoPlanPath);
+      } catch {
+        // Silent — no plan.yaml present
+      }
+    }
+
     // ---- Run analysis
     let result;
     try {
@@ -202,6 +237,8 @@ export default defineCommand({
         downsample,
         excludeAnomalies: args["exclude-anomalies"],
         noWeather: args["no-weather"],
+        plan,
+        fitDirPath: fitDir,
       });
     } catch (err) {
       fatal(

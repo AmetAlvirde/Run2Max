@@ -6,6 +6,7 @@ import type {
   ElevationProfile,
   FormatResult,
   OutputFormat,
+  PlanContext,
   RunSummary,
   SegmentRow,
   KmSplitRow,
@@ -56,6 +57,8 @@ interface FilteredResult {
   weatherSummary?: WeatherSummary | null;
   weatherPerSplit?: WeatherPerSplit[];
   anomalies?: Anomaly[];
+  /** Periodization context — always passed through when present on AnalysisResult. */
+  planContext?: PlanContext;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +128,8 @@ function applyProfile(
   const filtered: FilteredResult = {
     metadata: result.metadata,
     capabilities: result.capabilities,
+    // planContext is always forwarded — not gated by any profile section
+    planContext: result.planContext,
   };
 
   if (activeSections.includes("summary"))           filtered.summary = result.summary;

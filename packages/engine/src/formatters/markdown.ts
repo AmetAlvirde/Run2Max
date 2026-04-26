@@ -1,6 +1,7 @@
 import type {
   AnalysisResult,
   ColumnId,
+  PlanContext,
   SectionId,
 } from "../types.js";
 import type { OutputProfileConfig } from "../config/schema.js";
@@ -41,7 +42,9 @@ import { renderElevationChart } from "./ascii-chart.js";
 type FilteredResult = Pick<
   AnalysisResult,
   "metadata" | "capabilities"
-> & Partial<Omit<AnalysisResult, "metadata" | "capabilities">>;
+> & Partial<Omit<AnalysisResult, "metadata" | "capabilities">> & {
+  planContext?: PlanContext;
+};
 
 // ---------------------------------------------------------------------------
 // Section renderers
@@ -318,6 +321,29 @@ function renderAnomalies(result: FilteredResult): string {
 }
 
 // ---------------------------------------------------------------------------
+// Plan context header (always rendered above sections when present)
+// ---------------------------------------------------------------------------
+
+function renderPlanContext(ctx: PlanContext): string {
+  // Example: BUILD — Week 7/18 (LLL) | CANAL, Fractal 2 | Half Marathon Santiago
+  const parts: string[] = [
+    `${ctx.block.toUpperCase()} — Week ${ctx.weekNumber}/${ctx.totalWeeks} (${ctx.weekType})`,
+    `${ctx.mesocycle}, Fractal ${ctx.fractalIndex}`,
+  ];
+  if (ctx.goal) parts.push(ctx.goal);
+
+  const header = parts.join(" | ");
+
+  if (!ctx.weekProgress) return header;
+
+  const { completed, expected, runs } = ctx.weekProgress;
+  const runList = runs.length > 0 ? ` (${runs.join(", ")})` : "";
+  const progressLine = `  Week progress: run ${completed}/${expected}${runList}`;
+
+  return [header, progressLine].join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Section dispatch
 // ---------------------------------------------------------------------------
 
@@ -348,6 +374,11 @@ export function formatMarkdown(
   activeColumns: ColumnId[],
 ): string {
   const parts: string[] = [];
+
+  // Plan context header block is always shown when present — not profile-gated.
+  if (filtered.planContext) {
+    parts.push(renderPlanContext(filtered.planContext));
+  }
 
   for (const section of activeSections) {
     const rendered = SECTION_RENDERERS[section](filtered, activeColumns);
