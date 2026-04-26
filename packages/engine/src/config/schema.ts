@@ -89,6 +89,8 @@ const DayAssignmentSchema = v.object({
 
 const MicrocycleSchema = v.object({
   weekStart: v.picklist(WEEK_START_DAYS),
+  /** Number of missed runs that triggers an INC suggestion. Defaults to 2 at usage. */
+  incThreshold: v.optional(v.number()),
   default: DayAssignmentSchema,
   overrides: v.optional(v.record(v.string(), DayAssignmentSchema)),
 });

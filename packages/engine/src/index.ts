@@ -31,6 +31,7 @@ export type {
 export { detectCapabilities } from "./detect-capabilities.js";
 export { loadConfig } from "./config/loader.js";
 export type { LoadConfigOptions } from "./config/loader.js";
+export type { MicrocycleConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------
 // quantify — main engine entry point
@@ -78,7 +79,9 @@ export type { BuildPlanOptions } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
 export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
 export { getPlanStatus, formatDefaultView, formatFullView } from "./plan/status.js";
-export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker } from "./plan/status.js";
+export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker, PlanStatusOptions } from "./plan/status.js";
+export { detectWeekDeviations, reportHasAnomalies } from "./plan/detect.js";
+export type { DeviationReport, WeekRun } from "./plan/detect.js";
 export { syncWeek, SyncError } from "./plan/sync.js";
 export type { SyncData } from "./plan/sync.js";
 export { adjustPlan, AdjustError } from "./plan/adjust.js";

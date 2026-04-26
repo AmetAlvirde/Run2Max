@@ -1,4 +1,6 @@
 import type { Plan } from "./schema.js";
+import type { DeviationReport } from "./detect.js";
+import { reportHasAnomalies } from "./detect.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,6 +19,17 @@ export interface WeekStatusEntry {
   executed?: string;
   reason?: string;
   marker: WeekMarker;
+  /** Populated for unsynced_past weeks when deviation data is supplied. */
+  deviationReport?: DeviationReport;
+}
+
+export interface PlanStatusOptions {
+  /**
+   * Pre-computed deviation reports keyed by absolute week index (1-based).
+   * When provided, unsynced_past week entries are enriched with the report,
+   * and the formatters use `??` instead of `?` for anomalous weeks.
+   */
+  deviationReports?: Map<number, DeviationReport>;
 }
 
 export interface NextMilestone {
@@ -54,13 +67,16 @@ function addDays(dateStr: string, days: number): string {
 /**
  * Computes the status of a training plan.
  *
- * @param plan  Parsed Plan object
- * @param today ISO date string for "today" (defaults to actual current date).
- *              Pass explicitly to make behaviour deterministic in tests.
+ * @param plan    Parsed Plan object
+ * @param today   ISO date string for "today" (defaults to actual current date).
+ *                Pass explicitly to make behaviour deterministic in tests.
+ * @param options Optional enrichment — pass `deviationReports` to attach
+ *                pre-computed detection results to unsynced past week entries.
  */
 export function getPlanStatus(
   plan: Plan,
   today: string = new Date().toISOString().slice(0, 10),
+  options?: PlanStatusOptions,
 ): PlanStatus {
   // ------------------------------------------------------------------
   // Flatten weeks with structural context
@@ -121,6 +137,11 @@ export function getPlanStatus(
       marker = weekEnd < today ? "unsynced_past" : "future";
     }
 
+    const deviationReport =
+      marker === "unsynced_past"
+        ? options?.deviationReports?.get(w.absoluteIndex)
+        : undefined;
+
     return {
       absoluteIndex: w.absoluteIndex,
       totalWeeks,
@@ -132,6 +153,7 @@ export function getPlanStatus(
       executed: w.executed,
       reason: w.reason,
       marker,
+      deviationReport,
     };
   });
 
@@ -206,8 +228,10 @@ function weekToFullToken(w: WeekStatusEntry): string {
     case "current":
       // No suffix — distinguished by the `^ current` line below
       return w.planned;
-    case "unsynced_past":
-      return `${w.planned}?`;
+    case "unsynced_past": {
+      const marker = w.deviationReport && reportHasAnomalies(w.deviationReport) ? "??" : "?";
+      return `${w.planned}${marker}`;
+    }
     case "future":
       return `${w.planned} .`;
   }
@@ -247,10 +271,34 @@ export function formatDefaultView(status: PlanStatus): string {
     }
   }
 
-  if (status.unsyncedPastWeeks.length > 0) {
+  // Split unsynced past weeks into two groups: anomalous vs clean
+  const withAnomalies = status.unsyncedPastWeeks.filter(
+    (w) => w.deviationReport && reportHasAnomalies(w.deviationReport),
+  );
+  const cleanUnsynced = status.unsyncedPastWeeks.filter(
+    (w) => !w.deviationReport || !reportHasAnomalies(w.deviationReport),
+  );
+
+  if (withAnomalies.length > 0) {
+    lines.push("");
+    lines.push("Unsynced with anomalies:");
+    for (const w of withAnomalies) {
+      const r = w.deviationReport!;
+      const details: string[] = [];
+      details.push(`${r.completedRuns}/${r.expectedRuns} runs`);
+      if (r.missingLongRunDay) {
+        details.push(`missing long run day (${r.missingLongRunDay})`);
+      }
+      lines.push(
+        `  Week ${w.absoluteIndex}/${w.totalWeeks} — ${w.planned} (${w.start}): ${details.join(", ")}`,
+      );
+    }
+  }
+
+  if (cleanUnsynced.length > 0) {
     lines.push("");
     lines.push("Unsynced:");
-    for (const w of status.unsyncedPastWeeks) {
+    for (const w of cleanUnsynced) {
       lines.push(`  Week ${w.absoluteIndex}/${w.totalWeeks} — ${w.planned} (${w.start})`);
     }
   }

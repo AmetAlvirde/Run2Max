@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parsePlan } from "./schema.js";
 import { getPlanStatus, formatDefaultView, formatFullView } from "./status.js";
+import type { DeviationReport } from "./detect.js";
 
 // Fixed date for deterministic tests
 const TODAY = "2026-07-10";
@@ -386,5 +387,136 @@ describe("formatFullView", () => {
     const output = formatFullView(status);
     expect(output).toContain("D .");
     expect(output).toContain("P .");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deviation surfacing tests (issue #18)
+// ---------------------------------------------------------------------------
+
+/** Minimal deviation report with no anomalies. */
+const CLEAN_REPORT: DeviationReport = {
+  suggestINC: false,
+  suggestDNF: false,
+  missingLongRunDay: undefined,
+  completedRuns: 5,
+  expectedRuns: 5,
+  incThreshold: 2,
+};
+
+/** Deviation report with INC suggestion and missing long run day. */
+const ANOMALOUS_REPORT: DeviationReport = {
+  suggestINC: true,
+  suggestDNF: false,
+  missingLongRunDay: "sunday",
+  completedRuns: 2,
+  expectedRuns: 5,
+  incThreshold: 2,
+};
+
+describe("deviation surfacing in default view", () => {
+  it("shows unsynced weeks with anomalies separately from clean unsynced weeks", () => {
+    const plan = makeFullPlan();
+    // week 8 (LL) has anomalies, week 9 (LLL) is clean
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, ANOMALOUS_REPORT],
+      [9, CLEAN_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatDefaultView(status);
+
+    expect(output).toContain("Unsynced with anomalies:");
+    expect(output).toContain("Week 8/16 — LL (2026-06-22)");
+    expect(output).toContain("Unsynced:");
+    expect(output).toContain("Week 9/16 — LLL (2026-06-29)");
+  });
+
+  it("shows anomaly detail line with run count and missing long run day", () => {
+    const plan = makeFullPlan();
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, ANOMALOUS_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatDefaultView(status);
+
+    expect(output).toContain("2/5 runs");
+    expect(output).toContain("missing long run day (sunday)");
+  });
+
+  it("omits anomalies section when no anomalous unsynced weeks", () => {
+    const plan = makeFullPlan();
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, CLEAN_REPORT],
+      [9, CLEAN_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatDefaultView(status);
+
+    expect(output).not.toContain("Unsynced with anomalies:");
+    expect(output).toContain("Unsynced:");
+  });
+
+  it("omits clean unsynced section when all unsynced weeks have anomalies", () => {
+    const plan = makeFullPlan();
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, ANOMALOUS_REPORT],
+      [9, ANOMALOUS_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatDefaultView(status);
+
+    expect(output).toContain("Unsynced with anomalies:");
+    // "Unsynced:" should not appear as a standalone section (without "anomalies")
+    // The full "Unsynced:" string also appears inside "Unsynced with anomalies:"
+    // so check it doesn't have the standalone group header
+    const lines = output.split("\n");
+    expect(lines.some((l) => l === "Unsynced:")).toBe(false);
+  });
+
+  it("shows plain Unsynced section when no deviation reports provided (backward compat)", () => {
+    const plan = makeFullPlan();
+    const status = getPlanStatus(plan, TODAY);
+    const output = formatDefaultView(status);
+
+    expect(output).toContain("Unsynced:");
+    expect(output).not.toContain("Unsynced with anomalies:");
+  });
+});
+
+describe("deviation surfacing in full view (?/??)", () => {
+  it("uses ?? marker for unsynced past weeks with anomalies", () => {
+    const plan = makeFullPlan();
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, ANOMALOUS_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatFullView(status);
+
+    expect(output).toContain("LL??");
+  });
+
+  it("uses ? marker for unsynced past weeks without anomalies", () => {
+    const plan = makeFullPlan();
+    const deviationReports = new Map<number, DeviationReport>([
+      [8, ANOMALOUS_REPORT],
+      [9, CLEAN_REPORT],
+    ]);
+    const status = getPlanStatus(plan, TODAY, { deviationReports });
+    const output = formatFullView(status);
+
+    expect(output).toContain("LL??");
+    expect(output).toContain("LLL?");
+    // LLL? should not be LLL??
+    expect(output).not.toContain("LLL??");
+  });
+
+  it("uses ? for all unsynced past weeks when no deviation reports provided", () => {
+    const plan = makeFullPlan();
+    const status = getPlanStatus(plan, TODAY);
+    const output = formatFullView(status);
+
+    expect(output).toContain("LL?");
+    expect(output).toContain("LLL?");
+    expect(output).not.toContain("??");
   });
 });
