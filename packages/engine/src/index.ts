@@ -71,3 +71,4 @@ export { parsePlan, PLANNED_WEEK_TYPES, EXECUTED_ONLY_TYPES, ALL_WEEK_TYPES, REA
 export type { Plan, Mesocycle, Fractal, Week, TestingPeriod } from "./plan/schema.js";
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
+export { loadPlan } from "./plan/loader.js";

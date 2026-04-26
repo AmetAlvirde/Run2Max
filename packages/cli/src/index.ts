@@ -9,6 +9,7 @@ const main = defineCommand({
   },
   subCommands: {
     quantify: () => import("./commands/quantify.js").then((m) => m.default),
+    plan: () => import("./commands/plan/index.js").then((m) => m.default),
   },
 });
 
