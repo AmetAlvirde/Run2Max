@@ -14,6 +14,10 @@ import {
   classifyZone,
   computeElevationProfile,
   computeNormalizedPower,
+  // plan
+  loadPlan,
+  parsePlan,
+  validatePlan,
 } from "@run2max/engine";
 import type {
   AnalysisResult,
@@ -28,6 +32,13 @@ import type {
   ElevationProfile,
   WeatherSummary,
   WeatherPerSplit,
+  // plan
+  Plan,
+  Mesocycle,
+  Fractal,
+  Week,
+  TestingPeriod,
+  Diagnostic,
 } from "@run2max/engine";
 ```
 
@@ -128,6 +139,35 @@ Warnings are returned (not thrown) for dropped columns or skipped sections.
 ```ts
 const { hasRunningDynamics, hasStrydEnhanced } = detectCapabilities(records);
 ```
+
+### `loadPlan(filePath)`
+
+Reads a `plan.yaml` from disk, transforms snake_case keys to camelCase, and
+parses it against the plan schema. Throws with a descriptive message on missing
+file, invalid YAML, or schema failure.
+
+```ts
+const plan = await loadPlan("./plan.yaml");
+```
+
+### `parsePlan(raw)`
+
+Parses a raw (already-deserialized) object against the plan schema. Called
+internally by `loadPlan`; use it when you already have the parsed YAML object.
+
+### `validatePlan(plan)`
+
+Runs semantic checks on a parsed `Plan` and returns `Diagnostic[]`. An empty
+array means the plan is semantically valid.
+
+```ts
+const diagnostics = validatePlan(plan);
+// [{ code: "EXECUTED_ONLY_AS_PLANNED", message: "...", path: "..." }]
+```
+
+Checks performed: executed-only types used as `planned`, `reason` without a
+deviation, `testingPeriod` on non-test or DNF weeks, CP recorded when Ta was
+DNF or INC without test results.
 
 ## Data tiers
 

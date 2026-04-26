@@ -1,7 +1,7 @@
 # @run2max/cli
 
-CLI for run2max. Parses a `.fit` file and produces a structured run analysis as
-markdown, JSON, or YAML.
+CLI for run2max. Parses `.fit` files into structured run analysis and manages
+training plan files.
 
 ## Installation
 
@@ -77,6 +77,23 @@ run2max quantify my-run.fit --config ./run2max.config.yaml
 | `--config`            | `-c`  | —       | Explicit config file path |
 | `--exclude-anomalies` | —     | `false` | Exclude anomalous values from aggregations |
 | `--no-weather`        | —     | `false` | Skip weather fetch for this run |
+
+## Plan commands
+
+```bash
+run2max plan validate [plan.yaml]
+```
+
+Validates a `plan.yaml` file — structure (schema) and semantics (e.g. no
+executed-only types in the `planned` field, no `testingPeriod` on DNF weeks).
+
+Defaults to `./plan.yaml` in the current directory. Pass a path to validate a
+specific file.
+
+**Output:** `error: <message> (<path>)` lines, then a summary (`2 errors`).
+Prints `plan.yaml is valid` on success.
+
+**Exit codes:** `0` on success, `1` on errors.
 
 ## Config
 
