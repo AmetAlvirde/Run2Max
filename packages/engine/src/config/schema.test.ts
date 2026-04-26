@@ -181,3 +181,135 @@ describe("parseConfig", () => {
     expect(() => parseConfig({ ...minimalConfig, schema_version: 0 })).toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------
+// microcycle
+// ---------------------------------------------------------------------------
+
+const fullMicrocycleDefault = {
+  monday: "easy",
+  tuesday: "workout",
+  wednesday: "easy",
+  thursday: "workout",
+  friday: "easy",
+  saturday: "long",
+  sunday: "rest",
+};
+
+describe("microcycle", () => {
+  it("accepts config with microcycle section", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: { week_start: "monday", default: fullMicrocycleDefault },
+    });
+    expect(result.microcycle?.weekStart).toBe("monday");
+    expect(result.microcycle?.default.monday).toBe("easy");
+    expect(result.microcycle?.default.sunday).toBe("rest");
+  });
+
+  it("accepts config without microcycle", () => {
+    const result = parseConfig(minimalConfig);
+    expect(result.microcycle).toBeUndefined();
+  });
+
+  it("throws when microcycle.default is missing a day", () => {
+    const { sunday: _sunday, ...missingDay } = fullMicrocycleDefault;
+    expect(() =>
+      parseConfig({
+        ...minimalConfig,
+        microcycle: { week_start: "monday", default: missingDay },
+      })
+    ).toThrow();
+  });
+
+  it("throws when weekStart is not a valid day name", () => {
+    expect(() =>
+      parseConfig({
+        ...minimalConfig,
+        microcycle: { week_start: "weekday", default: fullMicrocycleDefault },
+      })
+    ).toThrow();
+  });
+
+  it("transforms snake_case day types from YAML", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: {
+        week_start: "monday",
+        default: { ...fullMicrocycleDefault, monday: "easy_strides" },
+      },
+    });
+    expect(result.microcycle?.weekStart).toBe("monday"); // key transformed
+    expect(result.microcycle?.default.monday).toBe("easy_strides"); // value unchanged
+  });
+
+  it("accepts microcycle.overrides keyed by week type", () => {
+    const deloadDays = {
+      monday: "rest",
+      tuesday: "easy",
+      wednesday: "rest",
+      thursday: "easy",
+      friday: "rest",
+      saturday: "easy",
+      sunday: "rest",
+    };
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: {
+        week_start: "monday",
+        default: fullMicrocycleDefault,
+        overrides: { D: deloadDays },
+      },
+    });
+    expect(result.microcycle?.overrides?.["D"]?.monday).toBe("rest");
+    expect(result.microcycle?.overrides?.["D"]?.tuesday).toBe("easy");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// custom
+// ---------------------------------------------------------------------------
+
+describe("custom", () => {
+  it("accepts custom.weekTypes with id and name", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      custom: { week_types: [{ id: "SHOCK", name: "Shock Week" }] },
+    });
+    expect(result.custom?.weekTypes).toHaveLength(1);
+    expect(result.custom?.weekTypes![0]!.id).toBe("SHOCK");
+    expect(result.custom?.weekTypes![0]!.name).toBe("Shock Week");
+  });
+
+  it("accepts custom.dayTypes with id and name", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      custom: { day_types: [{ id: "double", name: "Double Run Day" }] },
+    });
+    expect(result.custom?.dayTypes).toHaveLength(1);
+    expect(result.custom?.dayTypes![0]!.id).toBe("double");
+    expect(result.custom?.dayTypes![0]!.name).toBe("Double Run Day");
+  });
+
+  it("accepts custom.reasons as string array", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      custom: { reasons: ["family_event", "travel"] },
+    });
+    expect(result.custom?.reasons).toEqual(["family_event", "travel"]);
+  });
+
+  it("accepts config without custom section", () => {
+    const result = parseConfig(minimalConfig);
+    expect(result.custom).toBeUndefined();
+  });
+
+  it("strips unknown keys inside custom", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      custom: { reasons: ["travel"], unknown_field: "ignored" },
+    });
+    expect((result.custom as Record<string, unknown>).unknownField).toBeUndefined();
+    expect((result.custom as Record<string, unknown>).unknown_field).toBeUndefined();
+  });
+});
