@@ -243,6 +243,38 @@ describe("microcycle", () => {
     expect(result.microcycle?.default.monday).toBe("easy_strides"); // value unchanged
   });
 
+  it("accepts microcycle.incThreshold when provided", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: {
+        week_start: "monday",
+        default: fullMicrocycleDefault,
+        inc_threshold: 3,
+      },
+    });
+    expect(result.microcycle?.incThreshold).toBe(3);
+  });
+
+  it("incThreshold is optional — absent by default", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: { week_start: "monday", default: fullMicrocycleDefault },
+    });
+    expect(result.microcycle?.incThreshold).toBeUndefined();
+  });
+
+  it("transforms snake_case inc_threshold to camelCase incThreshold", () => {
+    const result = parseConfig({
+      ...minimalConfig,
+      microcycle: {
+        week_start: "monday",
+        default: fullMicrocycleDefault,
+        inc_threshold: 1,
+      },
+    });
+    expect(result.microcycle?.incThreshold).toBe(1);
+  });
+
   it("accepts microcycle.overrides keyed by week type", () => {
     const deloadDays = {
       monday: "rest",

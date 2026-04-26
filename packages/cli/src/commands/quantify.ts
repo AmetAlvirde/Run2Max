@@ -7,8 +7,11 @@ import {
   quantify,
   formatResult,
   DEFAULT_PROFILE,
+  scanBlockRuns,
+  detectWeekDeviations,
+  reportHasAnomalies,
 } from "@run2max/engine";
-import type { OutputFormat, OutputProfileConfig, Plan } from "@run2max/engine";
+import type { OutputFormat, OutputProfileConfig, Plan, MicrocycleConfig } from "@run2max/engine";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -254,6 +257,11 @@ export default defineCommand({
       console.error(`Warning: ${warning}`);
     }
 
+    // ---- Warn about unsynced previous week (cross-week nudge)
+    if (plan && result.planContext) {
+      await warnIfPreviousWeekUnsynced(plan, result.planContext.weekNumber, fitDir, config?.microcycle);
+    }
+
     // ---- Output
     if (args.output) {
       await writeFile(args.output, formatted.output);
@@ -263,3 +271,103 @@ export default defineCommand({
     }
   },
 });
+
+// ---------------------------------------------------------------------------
+// Previous-week unsynced warning
+// ---------------------------------------------------------------------------
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Using a structural subtype instead of the full `Plan` type avoids TS2589
+// ("Type instantiation is excessively deep and possibly infinite"). `Plan` is
+// derived via `v.InferOutput<typeof PlanSchema>`, a valibot conditional type
+// that the compiler must expand on every new instantiation context. When
+// combined with other valibot-inferred types in the same file the cumulative
+// expansion depth exceeds TypeScript's hard limit. Declaring only the fields
+// this function actually reads sidesteps the expansion entirely — TypeScript
+// performs a trivial structural compatibility check instead.
+//
+// Long-term refactor: resolve `Plan` (and sibling types) to plain named
+// interfaces in packages/engine/src/plan/schema.ts rather than using
+// `v.InferOutput<...>` as the public type. That breaks the conditional-type
+// chain at the source and removes the problem for all consumers.
+type PlanLike = {
+  mesocycles: Array<{
+    fractals: Array<{
+      weeks: Array<{ start: string; planned: string; executed?: string }>;
+    }>;
+  }>;
+};
+
+async function warnIfPreviousWeekUnsynced(
+  plan: PlanLike,
+  currentWeekNumber: number,
+  fitDir: string,
+  microcycleConfig: MicrocycleConfig | undefined,
+): Promise<void> {
+  if (currentWeekNumber <= 1) return;
+
+  const prevWeekNumber = currentWeekNumber - 1;
+
+  // Flatten plan weeks
+  const flatWeeks: Array<{
+    absoluteIndex: number;
+    totalWeeks: number;
+    start: string;
+    planned: string;
+    executed?: string;
+  }> = [];
+
+  let idx = 1;
+  for (const meso of plan.mesocycles) {
+    for (const fractal of meso.fractals) {
+      for (const week of fractal.weeks) {
+        flatWeeks.push({
+          absoluteIndex: idx++,
+          totalWeeks: 0,
+          start: week.start,
+          planned: week.planned,
+          executed: week.executed,
+        });
+      }
+    }
+  }
+  const totalWeeks = flatWeeks.length;
+  for (const w of flatWeeks) w.totalWeeks = totalWeeks;
+
+  const prevWeek = flatWeeks.find((w) => w.absoluteIndex === prevWeekNumber);
+  if (!prevWeek || prevWeek.executed !== undefined) return;
+
+  // Check the week is fully in the past
+  const prevWeekEnd = addDays(prevWeek.start, 7);
+  const today = new Date().toISOString().slice(0, 10);
+  if (prevWeekEnd >= today) return;
+
+  // Run detection when microcycle config is available
+  let anomalyDetails = "";
+  if (microcycleConfig) {
+    const allRuns = await scanBlockRuns(fitDir);
+    const weekRuns = allRuns.filter((r) => {
+      const runDate = r.date.toISOString().slice(0, 10);
+      return runDate >= prevWeek.start && runDate < prevWeekEnd;
+    });
+
+    const report = detectWeekDeviations(weekRuns, microcycleConfig, prevWeek.planned);
+    if (reportHasAnomalies(report)) {
+      const parts: string[] = [];
+      parts.push(`${report.completedRuns}/${report.expectedRuns} runs`);
+      if (report.missingLongRunDay) {
+        parts.push(`missing long run day (${report.missingLongRunDay})`);
+      }
+      anomalyDetails = ` (${parts.join(", ")})`;
+    }
+  }
+
+  console.error(
+    `Warning: Week ${prevWeek.absoluteIndex}/${totalWeeks} (${prevWeek.planned}) is unsynced${anomalyDetails}. Run run2max plan sync --week ${prevWeek.absoluteIndex} to record execution.`,
+  );
+}

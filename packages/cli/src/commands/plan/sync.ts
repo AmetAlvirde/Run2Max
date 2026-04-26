@@ -6,13 +6,16 @@ import { consola } from "consola";
 import type { SelectPromptOptions } from "consola";
 import {
   loadPlan,
+  loadConfig,
   validatePlan,
   getPlanStatus,
   syncWeek,
   SyncError,
   REASON_CATEGORIES,
+  scanBlockRuns,
+  detectWeekDeviations,
 } from "@run2max/engine";
-import type { Plan, TestingPeriod } from "@run2max/engine";
+import type { Plan, TestingPeriod, MicrocycleConfig } from "@run2max/engine";
 import type { SyncData } from "@run2max/engine";
 
 // ---------------------------------------------------------------------------
@@ -84,20 +87,31 @@ function validateAndReport(plan: Plan): boolean {
 // Interactive prompts
 // ---------------------------------------------------------------------------
 
-async function promptExecutedType(planned: string): Promise<string> {
+/**
+ * Prompts the athlete for the executed week type.
+ *
+ * @param planned        The planned week type (used as label context).
+ * @param suggestedType  Override default selection — used when detection
+ *                       pre-populates INC based on low run count.
+ */
+async function promptExecutedType(planned: string, suggestedType?: string): Promise<string> {
   const allTypes = ["L", "LL", "LLL", "D", "Ta", "Tb", "P", "R", "N", "INC", "DNF"];
 
-  // Default index: match planned type
-  const defaultIdx = allTypes.indexOf(planned);
+  const effectiveDefault = suggestedType ?? planned;
+  const defaultIdx = allTypes.indexOf(effectiveDefault);
+
+  const labelSuffix = suggestedType && suggestedType !== planned
+    ? ` (auto-detected: ${suggestedType})`
+    : "";
 
   const options: SelectPromptOptions["options"] = allTypes.map((t) => ({ value: t, label: t }));
-  const result = await consola.prompt(`Executed type (default: ${planned}):`, {
+  const result = await consola.prompt(`Executed type (default: ${effectiveDefault})${labelSuffix}:`, {
     type: "select",
     options,
     initial: defaultIdx >= 0 ? String(defaultIdx) : "0",
   });
 
-  return (result as string) ?? planned;
+  return (result as string) ?? effectiveDefault;
 }
 
 async function promptReason(): Promise<string | undefined> {
@@ -153,14 +167,19 @@ const DEVIATION_TYPES = new Set(["INC", "DNF"]);
 /**
  * Builds SyncData interactively for a single week, following the prompt flow
  * described in the issue spec.
+ *
+ * @param planned        Planned week type.
+ * @param weekLabel      Display label for the week (shown as info line).
+ * @param suggestedType  Pre-populated executed type from deviation detection.
  */
 async function buildSyncDataInteractive(
   planned: string,
   weekLabel: string,
+  suggestedType?: string,
 ): Promise<SyncData | null> {
   consola.info(weekLabel);
 
-  const executed = await promptExecutedType(planned);
+  const executed = await promptExecutedType(planned, suggestedType);
   if (executed === null) return null; // user cancelled
 
   const syncData: SyncData = { executed };
@@ -193,6 +212,48 @@ async function buildSyncDataInteractive(
   }
 
   return syncData;
+}
+
+// ---------------------------------------------------------------------------
+// CLI command
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Detection helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the deviation-based suggestion for a week's executed type, or
+ * undefined when no suggestion can be derived.
+ */
+async function detectSuggestion(
+  weekStart: string,
+  planned: string,
+  dir: string,
+  microcycleConfig: MicrocycleConfig | undefined,
+): Promise<string | undefined> {
+  if (!microcycleConfig) return undefined;
+
+  const weekEnd = addDays(weekStart, 7);
+  const today = new Date().toISOString().slice(0, 10);
+  if (weekEnd >= today) return undefined; // still in progress
+
+  const allRuns = await scanBlockRuns(dir);
+  const weekRuns = allRuns.filter((r) => {
+    const runDate = r.date.toISOString().slice(0, 10);
+    return runDate >= weekStart && runDate < weekEnd;
+  });
+
+  const report = detectWeekDeviations(weekRuns, microcycleConfig, planned);
+  if (report.suggestDNF) return "DNF";
+  if (report.suggestINC) return "INC";
+  return undefined;
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +306,11 @@ export default defineCommand({
       description: "Lactate threshold heart rate in bpm (optional, test weeks only)",
       required: false,
     },
+    config: {
+      type: "string",
+      description: "Explicit path to config file",
+      required: false,
+    },
   },
 
   async run({ args }) {
@@ -257,6 +323,15 @@ export default defineCommand({
     } catch (err) {
       consola.error((err as Error).message);
       process.exit(1);
+    }
+
+    // Load microcycle config for deviation-based INC/DNF pre-population (best-effort)
+    let microcycleConfig: MicrocycleConfig | undefined;
+    try {
+      const config = await loadConfig({ configPath: args.config });
+      microcycleConfig = config?.microcycle;
+    } catch {
+      // Non-fatal — proceed without detection
     }
 
     const flagOnly = args.executed !== undefined;
@@ -330,7 +405,8 @@ export default defineCommand({
       }
 
       const label = `Week ${weekEntry.absoluteIndex}/${weekEntry.totalWeeks} — ${weekEntry.planned} (${weekEntry.start})`;
-      const syncData = await buildSyncDataInteractive(weekEntry.planned, label);
+      const suggested = await detectSuggestion(weekEntry.start, weekEntry.planned, dir, microcycleConfig);
+      const syncData = await buildSyncDataInteractive(weekEntry.planned, label, suggested);
       if (syncData === null) {
         consola.info("Sync cancelled");
         return;
@@ -373,7 +449,8 @@ export default defineCommand({
 
     for (const weekEntry of sorted) {
       const label = `Week ${weekEntry.absoluteIndex}/${weekEntry.totalWeeks} — ${weekEntry.planned} (${weekEntry.start})`;
-      const syncData = await buildSyncDataInteractive(weekEntry.planned, label);
+      const suggested = await detectSuggestion(weekEntry.start, weekEntry.planned, dir, microcycleConfig);
+      const syncData = await buildSyncDataInteractive(weekEntry.planned, label, suggested);
 
       if (syncData === null) {
         consola.info("Sync cancelled — completed weeks have been saved");
