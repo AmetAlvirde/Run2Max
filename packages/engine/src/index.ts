@@ -62,3 +62,12 @@ export type {
   ColumnId,
   AnalysisMetadata,
 } from "./types.js";
+
+// ---------------------------------------------------------------------------
+// Plan schema, types, and validation
+// ---------------------------------------------------------------------------
+
+export { parsePlan, PLANNED_WEEK_TYPES, EXECUTED_ONLY_TYPES, ALL_WEEK_TYPES, REASON_CATEGORIES, KNOWN_DISTANCES } from "./plan/schema.js";
+export type { Plan, Mesocycle, Fractal, Week, TestingPeriod } from "./plan/schema.js";
+export { validatePlan } from "./plan/validate.js";
+export type { Diagnostic } from "./plan/validate.js";
