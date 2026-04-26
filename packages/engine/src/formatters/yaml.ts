@@ -1,11 +1,13 @@
 import { stringify } from "yaml";
-import type { AnalysisResult, ColumnId, SegmentRow, KmSplitRow } from "../types.js";
+import type { AnalysisResult, ColumnId, PlanContext, SegmentRow, KmSplitRow } from "../types.js";
 import { COLUMN_FIELD_MAP, camelToSnake } from "./utils.js";
 
 type FilteredResult = Pick<
   AnalysisResult,
   "metadata" | "capabilities"
-> & Partial<Omit<AnalysisResult, "metadata" | "capabilities">>;
+> & Partial<Omit<AnalysisResult, "metadata" | "capabilities">> & {
+  planContext?: PlanContext;
+};
 
 const SEGMENT_IDENTITY = ["lapIndex", "distance", "duration"] as const;
 const KM_IDENTITY = ["km", "distance", "duration"] as const;
@@ -52,6 +54,7 @@ export function formatYaml(
   if (filtered.paceZoneDistribution !== undefined) out["paceZoneDistribution"] = filtered.paceZoneDistribution;
   if (filtered.dynamicsSummary !== undefined)  out["dynamicsSummary"] = filtered.dynamicsSummary;
   if (filtered.anomalies !== undefined)        out["anomalies"] = filtered.anomalies;
+  if (filtered.planContext !== undefined)      out["planContext"] = filtered.planContext;
 
   return stringify(camelToSnake(out));
 }

@@ -21,6 +21,7 @@ export type {
   ElevationProfile,
   WeatherSummary,
   WeatherPerSplit,
+  PlanContext,
 } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -82,6 +83,8 @@ export { syncWeek, SyncError } from "./plan/sync.js";
 export type { SyncData } from "./plan/sync.js";
 export { adjustPlan, AdjustError } from "./plan/adjust.js";
 export type { AdjustOptions, AdjustResult } from "./plan/adjust.js";
+export { associateRun, scanBlockRuns, extractDisplayName } from "./plan/associate.js";
+export type { WeekAssociation, BlockRun } from "./plan/associate.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates

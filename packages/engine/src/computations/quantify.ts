@@ -5,6 +5,7 @@ import {
 } from "normalize-fit-file";
 import type {
   AnalysisResult,
+  PlanContext,
   QuantifyOptions,
   Run2MaxRecord,
   WeatherSummary,
@@ -13,6 +14,7 @@ import type {
   KmSplitRow,
 } from "../types.js";
 import { ENGINE_VERSION } from "../index.js";
+import { associateRun, scanBlockRuns } from "../plan/associate.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
@@ -136,6 +138,60 @@ export async function quantify(
     }
   }
 
+  // 9. Plan context (optional — only when options.plan is provided)
+  let planContext: PlanContext | undefined;
+  if (options.plan) {
+    const timezone = options.timezone ?? config?.athlete?.timezone ?? "UTC";
+    const weekAssoc = associateRun(options.plan, summary.date, timezone);
+
+    if (weekAssoc) {
+      // Compute week progress when microcycle config and fitDirPath are available
+      let weekProgress: PlanContext["weekProgress"];
+      const microcycle = config?.microcycle;
+      const fitDir = options.fitDirPath ?? ".";
+
+      if (microcycle?.default) {
+        const nonRestDays = Object.values(microcycle.default).filter(
+          (dayType) => dayType !== "rest",
+        ).length;
+
+        const blockRuns = await scanBlockRuns(fitDir);
+        const runsInWeek = blockRuns.filter((r) => {
+          const localDate = new Intl.DateTimeFormat("en-CA", {
+            timeZone: timezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(r.date);
+          const weekEnd = (() => {
+            const d = new Date(weekAssoc.weekStart + "T00:00:00Z");
+            d.setUTCDate(d.getUTCDate() + 7);
+            return d.toISOString().slice(0, 10);
+          })();
+          return localDate >= weekAssoc.weekStart && localDate < weekEnd;
+        });
+
+        weekProgress = {
+          completed: runsInWeek.length,
+          expected: nonRestDays,
+          runs: runsInWeek.map((r) => r.displayName),
+        };
+      }
+
+      planContext = {
+        block: options.plan.block,
+        goal: options.plan.goal,
+        weekNumber: weekAssoc.weekNumber,
+        totalWeeks: weekAssoc.totalWeeks,
+        weekType: weekAssoc.weekType,
+        mesocycle: weekAssoc.mesocycle,
+        fractalIndex: weekAssoc.fractalIndex,
+        totalFractals: weekAssoc.totalFractals,
+        weekProgress,
+      };
+    }
+  }
+
   return {
     metadata: {
       version: ENGINE_VERSION,
@@ -155,5 +211,6 @@ export async function quantify(
     weatherPerSplit,
     anomalies,
     capabilities,
+    planContext,
   };
 }
