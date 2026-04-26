@@ -72,3 +72,10 @@ export type { Plan, Mesocycle, Fractal, Week, TestingPeriod } from "./plan/schem
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan } from "./plan/loader.js";
+
+// ---------------------------------------------------------------------------
+// Plan templates
+// ---------------------------------------------------------------------------
+
+export type { PlanTemplate } from "./plan/templates/types.js";
+export { BUILTIN_TEMPLATES, getBuiltinTemplate } from "./plan/templates/builtin.js";
