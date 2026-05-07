@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parsePlan } from "./schema.js";
 import { validatePlan } from "./validate.js";
 import { adjustPlan, AdjustError } from "./adjust.js";
+import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -309,9 +310,9 @@ describe("adjustPlan", () => {
     expect(result.plan.raceDate).toBe("2026-06-22");
 
     // R week should be on the new race date
-    const rWeek = result.plan.mesocycles
-      .flatMap(m => m.fractals.flatMap(f => f.weeks))
-      .find(w => w.planned === "R");
+    const rWeek = walkPlan(result.plan)
+      .map((c) => c.week)
+      .find((w) => w.planned === "R");
     expect(rWeek?.start).toBe("2026-06-22");
   });
 
@@ -405,9 +406,7 @@ describe("adjustPlan", () => {
 
     if (result.mode !== "plan") throw new Error("expected plan mode");
 
-    const allWeeks = result.plan.mesocycles.flatMap(m =>
-      m.fractals.flatMap(f => f.weeks),
-    );
+    const allWeeks = walkPlan(result.plan).map((c) => c.week);
     const futureWeeks = allWeeks.filter(w => w.executed === undefined);
 
     // R must be on the new race date

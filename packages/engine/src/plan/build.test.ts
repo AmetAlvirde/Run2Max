@@ -3,6 +3,7 @@ import { buildPlanFromTemplate } from "./build.js";
 import { getBuiltinTemplate } from "./templates/builtin.js";
 import { parsePlan } from "./schema.js";
 import { validatePlan } from "./validate.js";
+import { walkPlan } from "./walk.js";
 
 const MONDAY = "2026-05-04";
 
@@ -10,7 +11,7 @@ describe("buildPlanFromTemplate", () => {
   it("builds a plan from a 1-meso template with correct week count", () => {
     const template = getBuiltinTemplate("1-meso")!;
     const plan = buildPlanFromTemplate(template, { block: "build", start: MONDAY });
-    const weeks = plan.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks));
+    const weeks = walkPlan(plan).map((c) => c.week);
     expect(weeks).toHaveLength(6);
   });
 

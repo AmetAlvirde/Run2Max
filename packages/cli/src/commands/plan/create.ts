@@ -9,6 +9,7 @@ import {
   BUILTIN_TEMPLATES,
   validatePlan,
   reconcile,
+  walkPlan,
   type Plan,
 } from "@run2max/engine";
 
@@ -192,7 +193,7 @@ export default defineCommand({
     const yaml = stringifyYaml(snakePlan);
     await writeFile(filePath, yaml, "utf-8");
 
-    const totalWeeks = plan.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks)).length;
+    const totalWeeks = walkPlan(plan).length;
     const lastWeek = plan.mesocycles.at(-1)!.fractals.at(-1)!.weeks.at(-1)!;
     const goalLine = plan.goal ? ` — ${plan.goal}` : "";
     process.stderr.write(`created: ${filePath}\n`);
