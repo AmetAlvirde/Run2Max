@@ -131,7 +131,8 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
 - Zero occurrences of `PlanLike` or equivalent structural-subtype workarounds
   for engine types in CLI or engine code.
 - The `TS2589` comment block in `cli/src/commands/quantify.ts` is removed,
-  and `pnpm typecheck` succeeds without it.
+  and repository-runnable verification commands (currently `pnpm test`) pass
+  without reintroducing the workaround.
 - The three current row-builder paths (segments, km-splits, dynamics) reach
   one shared primitive with bucketing as the only varying dimension.
   Measured by line-count reduction and by inspection of import graph.
@@ -168,11 +169,11 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
   reducers (`mapWeeks`, `findWeek`, `flattenWeeks`)? Answer informs every
   call site in the cycle. To be decided in the Plan-walker sub-PRD via
   design-it-twice.
-- `MUST RESOLVE`: Where do the named `Plan` / `Mesocycle` / `Fractal` /
-  `Week` interfaces live — beside the valibot schema in `plan/schema.ts`,
-  or in a new `plan/types.ts`? The chosen location must not re-introduce a
-  type-instantiation chain. Decided in the named-interfaces sub-PRD; an ADR
-  may be warranted because this decision is hard to reverse.
+- `RESOLVED IN IMPLEMENTATION`: Named `Plan` / `Mesocycle` / `Fractal` /
+  `Week` / `TestingPeriod` interfaces live in `plan/types.ts` (parent issue
+  #32), and `parsePlan` in `plan/schema.ts` returns the named `Plan`. This
+  removed the public inferred-type chain while keeping schema/runtime
+  validation in `schema.ts`.
 - `MUST RESOLVE`: What is the shape of the unified split-aggregator
   parameter — a `bucketBy` strategy function returning bucket keys, or a
   pre-bucketed `Slice[]` input the aggregator just reduces over? Affects

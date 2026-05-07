@@ -13,8 +13,9 @@
   `packages/cli/src/commands/quantify.ts` is deleted, including the 14-line
   comment block (`cli/src/commands/quantify.ts:285-304`). `Plan` is imported
   directly from `@run2max/engine`.
-- `pnpm typecheck` succeeds across the workspace. No `TS2589` is emitted in
-  the engine, the CLI, or any consumer.
+- Repository-runnable verification commands succeed across the workspace (at
+  minimum `pnpm test`), and no `TS2589` workaround is required in engine or
+  CLI consumers.
 - All existing tests pass without behavioural modification. The runtime
   output of `parsePlan` continues to satisfy every existing assertion.
 - A type-level drift guard exists: a test (or a `// @ts-expect-error`-aware
@@ -44,9 +45,9 @@
    from `packages/cli/src/commands/quantify.ts`. Replace the `PlanLike`
    parameter on `warnIfPreviousWeekUnsynced` with `Plan` imported from the
    engine.
-6. Add the type-level drift guard. Run the full test suite and `pnpm
-   typecheck`. Confirm `TS2589` is absent both before and after the
-   `PlanLike` deletion.
+6. Add the type-level drift guard. Run the full test suite using
+   repository-runnable verification commands (currently `pnpm test`). Confirm
+   `TS2589` is absent both before and after the `PlanLike` deletion.
 
 If during implementation the work decomposes into more than one vertical
 slice, additional sub-issues are added as siblings to #33. Today only #33 is
@@ -57,7 +58,7 @@ planned.
 - Upstream: none. This is the cycle's foundation.
 - External: `valibot` stays as the runtime parser. No version change. No
   swap to a different validation library.
-- Tooling: `pnpm typecheck`, `vitest`. Both already in place.
+- Tooling: `pnpm test` / `vitest` for repository-runnable verification.
 
 ## Flags
 
@@ -73,3 +74,15 @@ planned.
   questions.
 - The drift-guard test is the contract that keeps schema and interface in
   sync. Removing it is a drift signal — flag any future PR that does so.
+
+- [x] [33-convert-plan-types -> 32-named-plan-types] -- resolved at parent close; acceptance/verification language updated to avoid non-runnable `pnpm typecheck` references.
+
+  Sub-issue #33 closure found that `pnpm typecheck` is not an executable
+  workspace command in this repository. Parent-level acceptance criteria and
+  verification notes should reference runnable typecheck commands (or add a
+  canonical `typecheck` script) so closure checks are reproducible.
+
+  Files to review:
+  - context/cycles/01-deepen-engine/issues/32-named-plan-types/issue.md
+
+  (See source AAR for full context)

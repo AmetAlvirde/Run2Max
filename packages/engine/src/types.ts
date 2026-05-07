@@ -1,6 +1,6 @@
 import type { RecordData } from "normalize-fit-file";
 import type { Run2MaxConfig } from "./config/schema.js";
-import type { Plan } from "./plan/schema.js";
+import type { Plan } from "./plan/types.js";
 export type { Run2MaxConfig, ZoneConfig, OutputProfileConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import type { Plan } from "./schema.js";
+import type { Plan } from "./types.js";
 import type { PlanTemplate } from "./templates/types.js";
 import { reconcile } from "./reconcile.js";
 import type { CompressionOption } from "./reconcile.js";

@@ -1,4 +1,4 @@
-import type { Plan } from "./schema.js";
+import type { Plan } from "./types.js";
 import type { DeviationReport } from "./detect.js";
 import { reportHasAnomalies } from "./detect.js";
 

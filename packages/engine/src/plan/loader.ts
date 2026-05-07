@@ -1,7 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import { parsePlan, type Plan } from "./schema.js";
+import { parsePlan } from "./schema.js";
+import type { Plan } from "./types.js";
 import type { PlanTemplate } from "./templates/types.js";
 import { getBuiltinTemplate } from "./templates/builtin.js";
 import * as v from "valibot";
