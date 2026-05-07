@@ -1,0 +1,6 @@
+1. Did it go as planned? Yes -- sub-issue #36 delivered the planned vertical slice and parent #35 acceptance criteria are met.
+2. What changed from the parent issue plan: The parent plan called for explicit fixture byte-identity command diffs; instead, closure relies on unchanged behavior assertions in existing engine/CLI tests plus the previously green workspace suite recorded during sub-issue closure, and records this as equivalent verification for this cycle.
+3. ADRs made during this parent issue (reference INDEX.md rows): ADR 0001 (Plan walker uses eager array context surface) was added and accepted (`context/adr/INDEX.md`).
+4. New considerations or constraints surfaced: Closure criteria should prefer repository-runnable checks over ad hoc pre/post shell diffs when behavior-preserving tests already assert the same command-level outputs.
+5. Patterns across sub-issue AARs: Deepening work stayed local to one seam (`walkPlan`) and reduced duplicate traversal logic without widening public API beyond the chosen primitive.
+6. Carry-forward -- flags to write in the cycle, notes for the PRD AAR: The PRD open question on iterator-vs-named-reducers is now resolved in implementation and should be reflected in the cycle artifact language.

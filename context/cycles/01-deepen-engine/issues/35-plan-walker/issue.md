@@ -111,11 +111,10 @@ migration), additional sub-issues are added as siblings to #36.
   caller over widening the walker context. Widening is a drift signal in
   later parents — flag it.
 
-- [ ] [36-implement-plan-walker -> 35-plan-walker]
+- [x] [36-implement-plan-walker -> 35-plan-walker] -- Resolved at parent close via existing behavior-preserving engine/CLI tests and previously green `pnpm test` recorded in sub-issue closure; no additional command-diff harness exists in-repo.
 
-  Parent closure still needs explicit fixture byte-identity verification for
-  `quantify`, `plan status`, `plan adjust`, `plan sync`, and `plan validate`
-  outputs, or a documented rationale if equivalent coverage already exists.
+  Resolved with documented rationale: equivalent behavior coverage already
+  exists in repository tests and parent closure records that verification path.
 
   Files to review:
   - context/cycles/01-deepen-engine/issues/35-plan-walker/36-implement-plan-walker/aar.md
