@@ -1,6 +1,8 @@
 node_modules/
 plans/
 dist/
+.claude/
+.opencode/
 *.tsbuildinfo
 .DS_Store
 fixture-fits/*.fit
