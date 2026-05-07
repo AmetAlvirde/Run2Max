@@ -1,0 +1,6 @@
+1. Did it go as planned? Yes -- sub-issue #33 delivered the full scope and parent acceptance criteria are met, with one verification-doc correction carried forward.
+2. What changed from the parent issue plan: The plan assumed `pnpm typecheck` was a runnable workspace command; this repository does not define it, so closure language now references repository-runnable verification commands instead of a nonexistent top-level script.
+3. ADRs made during this parent issue (reference INDEX.md rows): None. ADR/index check performed: `context/adr/INDEX.md` is not present in this repository, and no new hard-to-reverse decision required ADR capture during this parent.
+4. New considerations or constraints surfaced: Verification criteria in cycle artifacts should name executable commands in this repo to keep closure checks reproducible.
+5. Patterns across sub-issue AARs: The implementation stayed behavior-preserving and deepened interface boundaries as intended; the only drift surfaced was documentation/runtime-command mismatch.
+6. Carry-forward -- flags to write in the cycle, notes for the PRD AAR: Cycle PRD was updated to remove the `pnpm typecheck` requirement and mark the named-interface location question as resolved in implementation (`plan/schema.ts`).

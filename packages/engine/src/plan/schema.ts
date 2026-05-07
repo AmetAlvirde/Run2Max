@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import type { Plan } from "./types.js";
 
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
@@ -66,12 +67,6 @@ export const PlanSchema = v.object({
     v.minLength(1, "mesocycles must contain at least one entry")
   ),
 });
-
-export type Plan = v.InferOutput<typeof PlanSchema>;
-export type Mesocycle = v.InferOutput<typeof MesocycleSchema>;
-export type Fractal = v.InferOutput<typeof FractalSchema>;
-export type Week = v.InferOutput<typeof WeekSchema>;
-export type TestingPeriod = v.InferOutput<typeof TestingPeriodSchema>;
 
 export function parsePlan(raw: unknown): Plan {
   return v.parse(PlanSchema, transformKeys(raw));

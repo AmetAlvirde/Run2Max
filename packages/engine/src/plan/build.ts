@@ -1,5 +1,5 @@
 import type { PlanTemplate } from "./templates/types.js";
-import type { Plan } from "./schema.js";
+import type { Plan } from "./types.js";
 
 export interface BuildPlanOptions {
   block: string;

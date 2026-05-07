@@ -1,4 +1,4 @@
-import type { Plan, Week } from "./schema.js";
+import type { Plan, Week } from "./types.js";
 import { EXECUTED_ONLY_TYPES } from "./schema.js";
 
 export interface Diagnostic {

@@ -1,4 +1,4 @@
-import type { Plan, TestingPeriod } from "./schema.js";
+import type { Plan, TestingPeriod } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Public types

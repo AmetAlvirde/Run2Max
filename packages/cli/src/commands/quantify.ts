@@ -282,29 +282,8 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Using a structural subtype instead of the full `Plan` type avoids TS2589
-// ("Type instantiation is excessively deep and possibly infinite"). `Plan` is
-// derived via `v.InferOutput<typeof PlanSchema>`, a valibot conditional type
-// that the compiler must expand on every new instantiation context. When
-// combined with other valibot-inferred types in the same file the cumulative
-// expansion depth exceeds TypeScript's hard limit. Declaring only the fields
-// this function actually reads sidesteps the expansion entirely — TypeScript
-// performs a trivial structural compatibility check instead.
-//
-// Long-term refactor: resolve `Plan` (and sibling types) to plain named
-// interfaces in packages/engine/src/plan/schema.ts rather than using
-// `v.InferOutput<...>` as the public type. That breaks the conditional-type
-// chain at the source and removes the problem for all consumers.
-type PlanLike = {
-  mesocycles: Array<{
-    fractals: Array<{
-      weeks: Array<{ start: string; planned: string; executed?: string }>;
-    }>;
-  }>;
-};
-
 async function warnIfPreviousWeekUnsynced(
-  plan: PlanLike,
+  plan: Plan,
   currentWeekNumber: number,
   fitDir: string,
   microcycleConfig: MicrocycleConfig | undefined,

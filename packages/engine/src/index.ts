@@ -70,7 +70,7 @@ export type {
 // ---------------------------------------------------------------------------
 
 export { parsePlan, PLANNED_WEEK_TYPES, EXECUTED_ONLY_TYPES, ALL_WEEK_TYPES, REASON_CATEGORIES, KNOWN_DISTANCES } from "./plan/schema.js";
-export type { Plan, Mesocycle, Fractal, Week, TestingPeriod } from "./plan/schema.js";
+export type { Plan, Mesocycle, Fractal, Week, TestingPeriod } from "./plan/types.js";
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan, loadUserTemplates, resolveTemplate } from "./plan/loader.js";

@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
-import type { Plan } from "./schema.js";
+import type { Plan } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Types
