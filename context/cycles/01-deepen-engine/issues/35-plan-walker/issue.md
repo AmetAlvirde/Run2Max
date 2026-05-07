@@ -99,10 +99,8 @@ migration), additional sub-issues are added as siblings to #36.
   rest of the cycle. Later parent issues that walk the Plan tree must
   import the walker rather than re-introducing inline iteration. A new PR
   reintroducing a private `flattenWeeks` is a drift signal — flag it.
-- The walker shape decision is a candidate ADR ("Plan walker as
-  iterator-of-context"). Capture the rationale in sub-issue #36's
-  design-it-twice record. If the rationale is durable and the decision is
-  hard to reverse, escalate to ADR per the cycle PRD's open questions.
+- The walker shape decision is captured as ADR 0001 in
+  `context/adr/0001-plan-walker-eager-array-surface.md`.
 - The cycle PRD's `MUST RESOLVE` open question on iterator-vs-reducers is
   answered by sub-issue #36's design-it-twice record. After this parent
   closes, update `context/cycles/01-deepen-engine/prd.md` to reflect the
@@ -112,3 +110,14 @@ migration), additional sub-issues are added as siblings to #36.
   is `adjust`-specific), prefer adding a narrowly-named helper next to the
   caller over widening the walker context. Widening is a drift signal in
   later parents — flag it.
+
+- [ ] [36-implement-plan-walker -> 35-plan-walker]
+
+  Parent closure still needs explicit fixture byte-identity verification for
+  `quantify`, `plan status`, `plan adjust`, `plan sync`, and `plan validate`
+  outputs, or a documented rationale if equivalent coverage already exists.
+
+  Files to review:
+  - context/cycles/01-deepen-engine/issues/35-plan-walker/36-implement-plan-walker/aar.md
+
+  (See source AAR for full context)
