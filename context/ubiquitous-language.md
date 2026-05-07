@@ -12,7 +12,8 @@
 | --- | --- | --- |
 | **Block** | A training cycle bounded by a folder containing a `plan.yaml` and its `.fit` files. | training block, macrocycle |
 | **Bridge Block** | A Block without a target race date used to span the gap between race-targeted Blocks. | recovery block, off-season |
-| **Mesocycle** | A named sequence of Fractals inside a Block expressing a single training intent (build, taper, race, etc.). | phase, segment |
+| **Plan** | The artifact (`plan.yaml` and its parsed form) that specifies a Block's Mesocycles, Fractals, Weeks, and Testing Periods. | training schedule, schedule |
+| **Mesocycle** | A named sequence of Fractals inside a Plan expressing a single training intent (build, taper, race, etc.). | phase, segment |
 | **Fractal** | An ordered sequence of Weeks inside a Mesocycle representing one repetition of its pattern. | microcycle group, repeat |
 | **Week** | The smallest macro unit, with a `planned` Week Type, an optional `executed` Week Type, and an optional `reason` and `note`. | microcycle |
 | **Week Type** | A one- or two-letter code denoting the intended or actual character of a Week (`L`, `LL`, `LLL`, `D`, `Ta`, `Tb`, `P`, `R`, `N`, plus executed-only `INC`, `DNF`). | week tag, label |
@@ -56,7 +57,8 @@
 
 ## Relationships
 
-- A **Block** contains one or more **Mesocycles** in order.
+- A **Block** is specified by exactly one **Plan**.
+- A **Plan** contains one or more **Mesocycles** in order.
 - A **Mesocycle** contains one or more **Fractals** in order.
 - A **Fractal** contains one or more **Weeks** in order.
 - A **Week** has exactly one planned **Week Type** and at most one executed **Week Type**.
@@ -77,8 +79,11 @@
 > **Domain expert:** "RSS only needs power, NP, and CP. Stryd fields drive Running Dynamics and Tier 3 metrics, not RSS."
 
 > **Dev:** "Can a single Mesocycle span two Blocks?"
-> **Domain expert:** "No. A Mesocycle is owned by one Block. Cross-Block continuity is expressed by sequencing Blocks, not by sharing Mesocycles."
+> **Domain expert:** "No. A Mesocycle is owned by one Plan, and a Plan specifies exactly one Block. Cross-Block continuity is expressed by sequencing Blocks, not by sharing Mesocycles."
+
+> **Dev:** "Where do Mesocycles live — on the Block or the Plan?"
+> **Domain expert:** "On the Plan. The Block is the training cycle as a whole; the Plan is the spec the runner is following. The Block folder bundles the Plan with the Runs and any supporting files."
 
 ## Flagged ambiguities
 
-_(none yet)_
+- "Plan" was used throughout code, the `plan.yaml` schema, and cycle 01 PRD without a glossary definition, while **Block** was defined as the folder containing both the plan and its `.fit` files — resolved: **Plan** added as a distinct term (the spec); **Block** remains the training cycle that the Plan specifies. Mesocycle ownership moved from Block to Plan in the relationships section.
