@@ -7,7 +7,7 @@ import {
   loadPlan,
   validatePlan,
   getPlanStatus,
-  formatFullView,
+  formatPlanStatus,
   adjustPlan,
   AdjustError,
 } from "@run2max/engine";
@@ -79,7 +79,7 @@ function validateAndReport(plan: Plan): boolean {
 // ---------------------------------------------------------------------------
 
 function renderFullView(plan: Plan): string {
-  return formatFullView(getPlanStatus(plan));
+  return formatPlanStatus(getPlanStatus(plan), { view: "full" });
 }
 
 function printBeforeAfter(before: Plan, after: Plan): void {

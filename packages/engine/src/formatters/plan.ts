@@ -96,6 +96,18 @@ export function formatDefaultView(status: PlanStatus): string {
   return lines.join("\n");
 }
 
+export function formatPlanStatus(
+  status: PlanStatus,
+  options: { view: "default" | "full" },
+): string {
+  switch (options.view) {
+    case "default":
+      return formatDefaultView(status);
+    case "full":
+      return formatFullView(status);
+  }
+}
+
 export function formatFullView(status: PlanStatus): string {
   const lines: string[] = [];
 

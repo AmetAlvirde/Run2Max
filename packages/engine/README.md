@@ -7,40 +7,49 @@ tiers, loads config, and produces a structured `AnalysisResult`.
 
 ```ts
 import {
+  ENGINE_VERSION,
+  // analysis output
   quantify,
   formatResult,
+  formatPlanStatus,
+  DEFAULT_PROFILE,
+  // config and infrastructure
   loadConfig,
-  detectCapabilities,
-  classifyZone,
-  computeElevationProfile,
-  computeNormalizedPower,
-  // plan
+  addDays,
+  transformKeysCamelToSnake,
+  // periodization and plan flow
+  REASON_CATEGORIES,
   loadPlan,
-  parsePlan,
+  resolvePlanTemplate,
+  listPlanTemplates,
+  buildPlanFromTemplate,
+  reconcile,
+  getPlanStatus,
+  detectWeekDeviations,
+  reportHasAnomalies,
+  syncWeek,
+  SyncError,
+  adjustPlan,
+  AdjustError,
+  walkPlan,
+  // run association
+  scanBlockRuns,
   validatePlan,
 } from "@run2max/engine";
 import type {
-  AnalysisResult,
-  AnalysisMetadata,
-  FormatResult,
   OutputFormat,
   OutputProfileConfig,
-  SectionId,
-  ColumnId,
-  Run2MaxConfig,
-  DataCapabilities,
-  ElevationProfile,
-  WeatherSummary,
-  WeatherPerSplit,
-  // plan
+  MicrocycleConfig,
   Plan,
-  Mesocycle,
-  Fractal,
-  Week,
   TestingPeriod,
   Diagnostic,
+  DeviationReport,
+  SyncData,
 } from "@run2max/engine";
 ```
+
+Low-level computation helpers and parser internals are intentionally not part of
+the public surface.
 
 ### `quantify(fitBuffer, options?)`
 
@@ -120,6 +129,18 @@ const { output, warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
 
 Warnings are returned (not thrown) for dropped columns or skipped sections.
 
+### `formatPlanStatus(status, { view })`
+
+Renders plan status text from a `PlanStatus`.
+
+```ts
+const status = getPlanStatus(plan);
+const defaultView = formatPlanStatus(status, { view: "default" });
+const fullView = formatPlanStatus(status, { view: "full" });
+```
+
+`view` is required and must be either `"default"` or `"full"`.
+
 **All sections:** `summary` · `elevation_profile` · `weather` · `segments` ·
 `km_splits` · `zones` · `hr_zones` · `pace_zones` · `dynamics` · `anomalies` ·
 `metadata`
@@ -134,12 +155,6 @@ Warnings are returned (not thrown) for dropped columns or skipped sections.
 | `fpr`, `air_power`                                       | Tier 3 — Stryd-enhanced                       |
 | `wind`, `temp`                                           | Weather API (skipped silently if unavailable) |
 
-### `detectCapabilities(records)`
-
-```ts
-const { hasRunningDynamics, hasStrydEnhanced } = detectCapabilities(records);
-```
-
 ### `loadPlan(filePath)`
 
 Reads a `plan.yaml` from disk, transforms snake_case keys to camelCase, and
@@ -150,10 +165,26 @@ file, invalid YAML, or schema failure.
 const plan = await loadPlan("./plan.yaml");
 ```
 
-### `parsePlan(raw)`
+### `resolvePlanTemplate(name, options?)`
 
-Parses a raw (already-deserialized) object against the plan schema. Called
-internally by `loadPlan`; use it when you already have the parsed YAML object.
+Resolves a template by name from built-in templates and optional user templates
+directory.
+
+```ts
+const template = await resolvePlanTemplate("10k", {
+  userTemplatesDir: "~/.config/run2max/templates",
+});
+```
+
+### `listPlanTemplates(options?)`
+
+Returns the effective template catalog (built-ins plus optional user templates).
+
+```ts
+const templates = await listPlanTemplates({
+  userTemplatesDir: "~/.config/run2max/templates",
+});
+```
 
 ### `validatePlan(plan)`
 
@@ -168,6 +199,28 @@ const diagnostics = validatePlan(plan);
 Checks performed: executed-only types used as `planned`, `reason` without a
 deviation, `testingPeriod` on non-test or DNF weeks, CP recorded when Ta was
 DNF or INC without test results.
+
+### `getPlanStatus(plan, today?, options?)`
+
+Builds structural status data for current-week and full-block views.
+
+### `detectWeekDeviations(weekRuns, microcycleConfig, plannedType)`
+
+Computes deviation signals for one week, including anomaly markers surfaced by
+plan status renderers.
+
+### `syncWeek(plan, args)` / `adjustPlan(plan, options)`
+
+Plan mutation helpers used by `plan sync` and `plan adjust` command flows.
+
+### `walkPlan(plan)`
+
+Returns an eager `WeekContext[]` traversal over the full Plan.
+
+### `scanBlockRuns(dir)`
+
+Scans a Block directory and returns `.fit` run records for association and
+deviation checks.
 
 ## Data tiers
 

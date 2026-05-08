@@ -3,7 +3,7 @@ import { parsePlan } from "../plan/schema.js";
 import { getPlanStatus } from "../plan/status.js";
 import { makeFullPlan, makeSingleFractalPlan } from "../plan/status.fixtures.js";
 import type { DeviationReport } from "../plan/detect.js";
-import { formatDefaultView, formatFullView } from "./plan.js";
+import { formatDefaultView, formatFullView, formatPlanStatus } from "./plan.js";
 
 const TODAY = "2026-07-10";
 
@@ -38,6 +38,22 @@ describe("formatDefaultView", () => {
     const output = formatDefaultView(status);
     expect(output).toContain("Plan complete");
     expect(output).toContain("2");
+  });
+});
+
+describe("formatPlanStatus", () => {
+  it("dispatches default view formatting when view is default", () => {
+    const plan = makeFullPlan();
+    const status = getPlanStatus(plan, TODAY);
+
+    expect(formatPlanStatus(status, { view: "default" })).toBe(formatDefaultView(status));
+  });
+
+  it("dispatches full view formatting when view is full", () => {
+    const plan = makeFullPlan();
+    const status = getPlanStatus(plan, TODAY);
+
+    expect(formatPlanStatus(status, { view: "full" })).toBe(formatFullView(status));
   });
 });
 

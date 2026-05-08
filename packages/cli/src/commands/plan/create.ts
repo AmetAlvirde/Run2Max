@@ -4,9 +4,8 @@ import { writeFile, access } from "node:fs/promises";
 import { stringify as stringifyYaml } from "yaml";
 import {
   buildPlanFromTemplate,
-  loadUserTemplates,
-  resolveTemplate,
-  BUILTIN_TEMPLATES,
+  resolvePlanTemplate,
+  listPlanTemplates,
   validatePlan,
   reconcile,
   walkPlan,
@@ -74,14 +73,11 @@ export default defineCommand({
       "run2max",
       "templates"
     );
-    const userTemplates = await loadUserTemplates(userTemplatesDir);
-    const resolved = resolveTemplate(args.template, userTemplates);
+    const resolved = await resolvePlanTemplate(args.template, { userTemplatesDir });
 
     if (!resolved) {
-      const available = [
-        ...userTemplates.map((t) => t.name),
-        ...BUILTIN_TEMPLATES.map((t) => t.name),
-      ].join(", ");
+      const availableTemplates = await listPlanTemplates({ userTemplatesDir });
+      const available = availableTemplates.map((template) => template.name).join(", ");
       console.error(`error: unknown template "${args.template}". Available: ${available}`);
       process.exit(1);
       return;

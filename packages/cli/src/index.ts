@@ -4,7 +4,7 @@ import { ENGINE_VERSION } from "@run2max/engine";
 const main = defineCommand({
   meta: {
     name: "run2max",
-    version: "1.0.0",
+    version: "2.0.0",
     description: "Structured run analysis from .fit files",
   },
   subCommands: {
