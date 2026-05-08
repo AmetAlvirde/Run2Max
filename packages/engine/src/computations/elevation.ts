@@ -1,4 +1,5 @@
 import type { Run2MaxRecord, ElevationProfile } from "../types.js";
+import { getDistance } from "./utils.js";
 
 /**
  * Extract altitude from a record, preferring enhancedAltitude over altitude.
@@ -6,13 +7,6 @@ import type { Run2MaxRecord, ElevationProfile } from "../types.js";
  */
 export function getAltitude(record: Run2MaxRecord): number | null {
   return record.enhancedAltitude ?? record.altitude ?? null;
-}
-
-/**
- * Get accumulated distance from a record, preferring strydDistance.
- */
-function getDistance(record: Run2MaxRecord): number | null {
-  return (record.strydDistance ?? record.distance) as number | null;
 }
 
 /**

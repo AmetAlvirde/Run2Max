@@ -1,25 +1,5 @@
 import * as v from "valibot";
-
-// ---------------------------------------------------------------------------
-// Snake_case → camelCase transform (applied before validation)
-// ---------------------------------------------------------------------------
-
-function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-}
-
-function transformKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(transformKeys);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        snakeToCamel(k),
-        transformKeys(v),
-      ])
-    );
-  }
-  return value;
-}
+import { transformKeysSnakeToCamel } from "../plan/case-keys.js";
 
 // ---------------------------------------------------------------------------
 // Valibot schema
@@ -166,5 +146,5 @@ export type CustomConfig = v.InferOutput<typeof CustomSchema>;
 // ---------------------------------------------------------------------------
 
 export function parseConfig(raw: unknown): Run2MaxConfig {
-  return v.parse(Run2MaxConfigSchema, transformKeys(raw));
+  return v.parse(Run2MaxConfigSchema, transformKeysSnakeToCamel(raw));
 }

@@ -258,19 +258,4 @@ export function padTable(headers: string[], rows: string[][]): string {
   return [renderRow(headers), separator, ...rows.map(renderRow)].join("\n");
 }
 
-// ---------------------------------------------------------------------------
-// camelCase → snake_case (recursive, for YAML output)
-// ---------------------------------------------------------------------------
-
-export function camelToSnake(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(camelToSnake);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        k.replace(/([A-Z])/g, "_$1").toLowerCase(),
-        camelToSnake(v),
-      ])
-    );
-  }
-  return value;
-}
+export { transformKeysCamelToSnake as camelToSnake } from "../plan/case-keys.js";

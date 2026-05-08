@@ -10,25 +10,9 @@ import {
   validatePlan,
   reconcile,
   walkPlan,
+  transformKeysCamelToSnake,
   type Plan,
 } from "@run2max/engine";
-
-function camelToSnake(str: string): string {
-  return str.replace(/([A-Z])/g, (_, c: string) => `_${c.toLowerCase()}`);
-}
-
-function transformKeysToSnake(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(transformKeysToSnake);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        camelToSnake(k),
-        transformKeysToSnake(v),
-      ])
-    );
-  }
-  return value;
-}
 
 export default defineCommand({
   meta: {
@@ -189,7 +173,7 @@ export default defineCommand({
       }
     }
 
-    const snakePlan = transformKeysToSnake(plan);
+    const snakePlan = transformKeysCamelToSnake(plan);
     const yaml = stringifyYaml(snakePlan);
     await writeFile(filePath, yaml, "utf-8");
 

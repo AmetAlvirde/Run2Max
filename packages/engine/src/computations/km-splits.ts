@@ -6,15 +6,9 @@ import type {
 } from "../types.js";
 import { aggregateBucket, type WeightedRecord } from "./aggregate.js";
 import { computeSplitElevation, getAltitude } from "./elevation.js";
+import { getDistance } from "./utils.js";
 
 const KM_IN_METERS = 1000;
-
-/**
- * Get the distance value from a record, preferring strydDistance.
- */
-function getDistance(record: Run2MaxRecord): number {
-  return ((record.strydDistance ?? record.distance) as number | undefined) ?? 0;
-}
 
 /**
  * Slice records at 1km distance boundaries with interpolation.
@@ -31,8 +25,8 @@ export function computeKmSplits(
   let currentBoundary = KM_IN_METERS;
 
   for (let i = 0; i < records.length; i++) {
-    const dist = getDistance(records[i]);
-    const prevDist = i > 0 ? getDistance(records[i - 1]) : 0;
+    const dist = getDistance(records[i]) ?? 0;
+    const prevDist = i > 0 ? (getDistance(records[i - 1]) ?? 0) : 0;
 
     if (dist < currentBoundary) {
       // Record is fully within the current km bucket
@@ -89,8 +83,8 @@ function buildKmSplitRow(
   const duration = totalWeight; // each full weight = 1 second
 
   // Distance for this split: sum of weighted distance deltas
-  const firstDist = getDistance(bucket[0].record);
-  const lastDist = getDistance(bucket[bucket.length - 1].record);
+  const firstDist = getDistance(bucket[0].record) ?? 0;
+  const lastDist = getDistance(bucket[bucket.length - 1].record) ?? 0;
   const distance = lastDist - firstDist || totalWeight * (KM_IN_METERS / duration || 0);
 
   // For partial splits, use actual distance; for full splits, it should be ~1000m

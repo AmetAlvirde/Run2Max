@@ -83,6 +83,7 @@ export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan, loadUserTemplates, resolveTemplate } from "./plan/loader.js";
 export { buildPlanFromTemplate } from "./plan/build.js";
 export type { BuildPlanOptions } from "./plan/build.js";
+export { addDays } from "./plan/dates.js";
 export { reconcile } from "./plan/reconcile.js";
 export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
 export { getPlanStatus } from "./plan/status.js";
@@ -97,6 +98,7 @@ export { walkPlan } from "./plan/walk.js";
 export type { WeekContext } from "./plan/walk.js";
 export { associateRun, scanBlockRuns, extractDisplayName } from "./plan/associate.js";
 export type { WeekAssociation, BlockRun } from "./plan/associate.js";
+export { transformKeysSnakeToCamel, transformKeysCamelToSnake } from "./plan/case-keys.js";
 
 // ---------------------------------------------------------------------------
 // Plan templates

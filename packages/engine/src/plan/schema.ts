@@ -1,22 +1,6 @@
 import * as v from "valibot";
 import type { Plan } from "./types.js";
-
-function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-}
-
-function transformKeys(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(transformKeys);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        snakeToCamel(k),
-        transformKeys(v),
-      ])
-    );
-  }
-  return value;
-}
+import { transformKeysSnakeToCamel } from "./case-keys.js";
 
 export const PLANNED_WEEK_TYPES = ["L", "LL", "LLL", "D", "Ta", "Tb", "P", "R", "N"] as const;
 export const EXECUTED_ONLY_TYPES = ["INC", "DNF"] as const;
@@ -69,5 +53,5 @@ export const PlanSchema = v.object({
 });
 
 export function parsePlan(raw: unknown): Plan {
-  return v.parse(PlanSchema, transformKeys(raw));
+  return v.parse(PlanSchema, transformKeysSnakeToCamel(raw));
 }

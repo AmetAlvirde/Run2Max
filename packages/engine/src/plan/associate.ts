@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import type { Plan } from "./types.js";
+import { addDays } from "./dates.js";
 import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
@@ -23,16 +24,6 @@ export interface BlockRun {
   path: string;
   displayName: string;
   date: Date;
-}
-
-// ---------------------------------------------------------------------------
-// Date helpers
-// ---------------------------------------------------------------------------
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 /**
