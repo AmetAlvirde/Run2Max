@@ -10,12 +10,7 @@ export type { Plan, TestingPeriod } from "./plan/types.js";
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan } from "./plan/loader.js";
-// TODO(sub-issue #50): replace with resolvePlanTemplate(name, { userTemplatesDir }).
-export { loadUserTemplates } from "./plan/loader.js";
-// TODO(sub-issue #50): replace with resolvePlanTemplate(name, { userTemplatesDir }).
-export { resolveTemplate } from "./plan/loader.js";
-// TODO(sub-issue #50): replace with listPlanTemplates({ userTemplatesDir }).
-export { BUILTIN_TEMPLATES } from "./plan/templates/builtin.js";
+export { resolvePlanTemplate, listPlanTemplates } from "./plan/templates/lookup.js";
 export { buildPlanFromTemplate } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
 export { getPlanStatus } from "./plan/status.js";

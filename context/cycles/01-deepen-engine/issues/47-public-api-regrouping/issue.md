@@ -163,7 +163,7 @@ a basis for sizing the remaining work.
 
   (See source AAR for full context)
 
-- [ ] [48-audit-and-grouping-design -> 50-template-api-fold]
+- [x] [48-audit-and-grouping-design -> 50-template-api-fold]
 
   The audit classified `loadUserTemplates`, `resolveTemplate`, and
   `BUILTIN_TEMPLATES` as FOLD, with a deeper intent-level template access
@@ -173,6 +173,8 @@ a basis for sizing the remaining work.
 
   Files to review:
   - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/manifest.md
+
+  Resolved in sub-issue #50: template lookup/list fold landed; old template exports removed from public surface.
 
   (See source AAR for full context)
 
