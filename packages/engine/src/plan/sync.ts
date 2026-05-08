@@ -1,4 +1,5 @@
 import type { Plan, TestingPeriod } from "./types.js";
+import { clonePlan } from "./clone.js";
 import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
@@ -54,23 +55,6 @@ function findLastTestWeekInSequence(
   }
 
   return lastTestWi;
-}
-
-/**
- * Produces a deep-ish clone of the plan sufficient for immutable updates.
- * Clones the structural path down to a specific week.
- */
-function clonePlan(plan: Plan): Plan {
-  return {
-    ...plan,
-    mesocycles: plan.mesocycles.map((meso) => ({
-      ...meso,
-      fractals: meso.fractals.map((fractal) => ({
-        ...fractal,
-        weeks: fractal.weeks.map((week) => ({ ...week })),
-      })),
-    })),
-  };
 }
 
 // ---------------------------------------------------------------------------

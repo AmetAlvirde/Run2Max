@@ -11,6 +11,7 @@ import {
   detectWeekDeviations,
   reportHasAnomalies,
   walkPlan,
+  addDays,
 } from "@run2max/engine";
 import type { OutputFormat, OutputProfileConfig, Plan, MicrocycleConfig } from "@run2max/engine";
 
@@ -272,16 +273,6 @@ export default defineCommand({
     }
   },
 });
-
-// ---------------------------------------------------------------------------
-// Previous-week unsynced warning
-// ---------------------------------------------------------------------------
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 async function warnIfPreviousWeekUnsynced(
   plan: Plan,

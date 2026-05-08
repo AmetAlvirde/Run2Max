@@ -14,6 +14,7 @@ import {
   REASON_CATEGORIES,
   scanBlockRuns,
   detectWeekDeviations,
+  addDays,
 } from "@run2max/engine";
 import type { Plan, TestingPeriod, MicrocycleConfig } from "@run2max/engine";
 import type { SyncData } from "@run2max/engine";
@@ -248,12 +249,6 @@ async function detectSuggestion(
   if (report.suggestDNF) return "DNF";
   if (report.suggestINC) return "INC";
   return undefined;
-}
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 // ---------------------------------------------------------------------------

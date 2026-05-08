@@ -7,13 +7,7 @@ import type {
 } from "../types.js";
 import { aggregateBucket } from "./aggregate.js";
 import { computeSplitElevation, getAltitude } from "./elevation.js";
-
-/**
- * Get the distance value from a record, preferring strydDistance.
- */
-function getDistance(record: Run2MaxRecord): number | null {
-  return (record.strydDistance ?? record.distance) as number | null;
-}
+import { getDistance } from "./utils.js";
 
 /**
  * Convert a timestamp to epoch ms for comparison.

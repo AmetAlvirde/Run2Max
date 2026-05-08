@@ -5,16 +5,15 @@ import type {
   QuantifyOptions,
   Run2MaxConfig,
 } from "../types.js";
-import { avg, rollingWindowPeak, rollingWindowMin, computeNormalizedPower } from "./utils.js";
+import {
+  avg,
+  rollingWindowPeak,
+  rollingWindowMin,
+  computeNormalizedPower,
+  getDistance,
+} from "./utils.js";
 import { classifyPowerZone, classifyZone } from "./zones.js";
 import { computeElevationProfile } from "./elevation.js";
-
-/**
- * Get the distance value from a record, preferring strydDistance.
- */
-function getDistance(record: Run2MaxRecord): number | null {
-  return (record.strydDistance ?? record.distance) as number | null;
-}
 
 /**
  * Resolve LTHR from config: thresholds.lthr → calibration.lthr → null.

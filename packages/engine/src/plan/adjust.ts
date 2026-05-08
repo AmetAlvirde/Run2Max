@@ -1,5 +1,6 @@
 import type { Plan } from "./types.js";
 import type { PlanTemplate } from "./templates/types.js";
+import { clonePlan } from "./clone.js";
 import { reconcile } from "./reconcile.js";
 import type { CompressionOption } from "./reconcile.js";
 import { walkPlan } from "./walk.js";
@@ -84,22 +85,6 @@ function extractFutureTemplate(
   }
 
   return { name: "future", description: "extracted future portion", mesocycles };
-}
-
-/**
- * Deep-clones a Plan (structural copy sufficient for immutable updates).
- */
-function clonePlan(plan: Plan): Plan {
-  return {
-    ...plan,
-    mesocycles: plan.mesocycles.map((meso) => ({
-      ...meso,
-      fractals: meso.fractals.map((fractal) => ({
-        ...fractal,
-        weeks: fractal.weeks.map((week) => ({ ...week })),
-      })),
-    })),
-  };
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { Plan } from "./types.js";
 import type { DeviationReport } from "./detect.js";
+import { addDays } from "./dates.js";
 import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
@@ -48,16 +49,6 @@ export interface PlanStatus {
   nextMilestones: NextMilestone[];
   unsyncedPastWeeks: WeekStatusEntry[];
   weeks: WeekStatusEntry[];
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import type { PlanTemplate } from "./templates/types.js";
 import type { Plan } from "./types.js";
+import { addDays } from "./dates.js";
 
 export interface BuildPlanOptions {
   block: string;
@@ -19,12 +20,6 @@ const DAY_NUMBERS: Record<string, number> = {
   friday: 5,
   saturday: 6,
 };
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 export function buildPlanFromTemplate(template: PlanTemplate, options: BuildPlanOptions): Plan {
   const weekStartDay = options.weekStart ?? "monday";

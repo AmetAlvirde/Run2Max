@@ -1,3 +1,5 @@
+import type { Run2MaxRecord } from "../types.js";
+
 /**
  * Compute the arithmetic mean of numeric values, skipping null/undefined.
  * Returns null if no valid values exist.
@@ -12,6 +14,13 @@ export function avg(values: (number | null | undefined)[]): number | null {
     }
   }
   return count === 0 ? null : sum / count;
+}
+
+/**
+ * Get the distance value from a record, preferring strydDistance.
+ */
+export function getDistance(record: Run2MaxRecord): number | null {
+  return (record.strydDistance ?? record.distance) as number | null;
 }
 
 /**
