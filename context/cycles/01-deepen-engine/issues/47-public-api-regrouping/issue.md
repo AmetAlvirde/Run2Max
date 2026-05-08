@@ -91,6 +91,30 @@ a basis for sizing the remaining work.
   confirm no consumer breaks when an export is hidden.
 - External: `valibot` untouched. `vitest` continues to drive tests.
 
+## Current status (after sub-issue #49)
+
+- Sub-issue #49 is complete: `packages/engine/src/index.ts` now follows the
+  glossary-ordered banner shape and removes all HIDE-classified exports from the
+  public surface.
+- Public export count is now **34** (29 KEEP + 5 FOLD-pending), so the parent
+  `<= 30` acceptance criterion is **not yet met**.
+- No additional regrouping work remains; remaining scope is fold completion and
+  parent-level closure bookkeeping.
+
+### Remaining to close parent #47
+
+1. Complete sub-issue #50 (template API fold): replace
+   `loadUserTemplates`/`resolveTemplate`/`BUILTIN_TEMPLATES` with the folded
+   template API surface and remove the FOLD-pending exports from `index.ts`.
+2. Complete sub-issue #51 (plan-status formatter fold): replace
+   `formatDefaultView`/`formatFullView` with `formatPlanStatus(..., { view })`
+   and remove the FOLD-pending exports from `index.ts`.
+3. Re-run parent verification gates at final shape (`pnpm test`,
+   `pnpm --filter @run2max/engine build`, strict typecheck) and confirm export
+   count `<= 30`.
+4. Resolve the cycle PRD open question and record final grouping rationale at
+   parent close (AAR and ADR 0005 only if rationale is non-obvious).
+
 ## Flags
 
 - This parent is the cycle's last parent. Cycle close follows once this parent's
