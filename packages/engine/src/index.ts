@@ -63,6 +63,7 @@ export { computeNormalizedPower } from "./computations/utils.js";
 // ---------------------------------------------------------------------------
 
 export { formatResult, DEFAULT_PROFILE } from "./formatters/index.js";
+export { formatDefaultView, formatFullView } from "./formatters/plan.js";
 export type {
   FormatResult,
   OutputFormat,
@@ -84,7 +85,7 @@ export { buildPlanFromTemplate } from "./plan/build.js";
 export type { BuildPlanOptions } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
 export type { ReconcileOptions, ReconciliationResult, CompressionOption } from "./plan/reconcile.js";
-export { getPlanStatus, formatDefaultView, formatFullView } from "./plan/status.js";
+export { getPlanStatus } from "./plan/status.js";
 export type { PlanStatus, WeekStatusEntry, NextMilestone, WeekMarker, PlanStatusOptions } from "./plan/status.js";
 export { detectWeekDeviations, reportHasAnomalies } from "./plan/detect.js";
 export type { DeviationReport, WeekRun } from "./plan/detect.js";
