@@ -4,8 +4,7 @@ import {
   loadPlan,
   loadConfig,
   getPlanStatus,
-  formatDefaultView,
-  formatFullView,
+  formatPlanStatus,
   scanBlockRuns,
   detectWeekDeviations,
   addDays,
@@ -88,7 +87,7 @@ export default defineCommand({
       deviationReports: deviationReports.size > 0 ? deviationReports : undefined,
     });
 
-    const output = args.full ? formatFullView(status) : formatDefaultView(status);
+    const output = formatPlanStatus(status, { view: args.full ? "full" : "default" });
     console.log(output);
   },
 });

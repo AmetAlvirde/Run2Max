@@ -178,7 +178,7 @@ a basis for sizing the remaining work.
 
   (See source AAR for full context)
 
-- [ ] [48-audit-and-grouping-design -> 51-plan-status-formatter-fold]
+- [x] [48-audit-and-grouping-design -> 51-plan-status-formatter-fold]
 
   The audit classified `formatDefaultView` and `formatFullView` as FOLD toward a
   single view-parameterized formatter API. This needs explicit API design and
@@ -186,5 +186,7 @@ a basis for sizing the remaining work.
 
   Files to review:
   - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/manifest.md
+
+  Resolved in sub-issue #51: `formatPlanStatus(status, { view })` replaced the two formatter exports on the public surface; CLI consumers were migrated and the old index re-exports removed.
 
   (See source AAR for full context)

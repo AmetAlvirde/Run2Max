@@ -42,10 +42,7 @@ export { scanBlockRuns } from "./plan/associate.js";
 export { quantify } from "./computations/quantify.js";
 export { formatResult } from "./formatters/index.js";
 export type { OutputFormat } from "./types.js";
-// TODO(sub-issue #51): replace with formatPlanStatus(status, { view: "default" }).
-export { formatDefaultView } from "./formatters/plan.js";
-// TODO(sub-issue #51): replace with formatPlanStatus(status, { view: "full" }).
-export { formatFullView } from "./formatters/plan.js";
+export { formatPlanStatus } from "./formatters/plan.js";
 
 // ---------------------------------------------------------------------------
 // Infrastructure
