@@ -47,6 +47,12 @@ export { classifyZone, classifyPowerZone, computeZoneDistribution } from "./comp
 export { computeSegments } from "./computations/segments.js";
 export { computeKmSplits } from "./computations/km-splits.js";
 export { computeDynamicsSummary } from "./computations/dynamics.js";
+export {
+  aggregateBucket,
+  type WeightedRecord,
+  type AggregationConfig,
+  type AggregatedFields,
+} from "./computations/aggregate.js";
 export { computeSummary } from "./computations/summary.js";
 export { detectAnomalies, applyAnomalyExclusions } from "./computations/anomalies.js";
 export { computeElevationProfile } from "./computations/elevation.js";
