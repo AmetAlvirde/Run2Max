@@ -4,8 +4,7 @@ import type {
   ZoneConfig,
   DataCapabilities,
 } from "../types.js";
-import { avg } from "./utils.js";
-import { classifyPowerZone } from "./zones.js";
+import { aggregateBucket, type WeightedRecord } from "./aggregate.js";
 import { computeSplitElevation, getAltitude } from "./elevation.js";
 
 const KM_IN_METERS = 1000;
@@ -15,15 +14,6 @@ const KM_IN_METERS = 1000;
  */
 function getDistance(record: Run2MaxRecord): number {
   return ((record.strydDistance ?? record.distance) as number | undefined) ?? 0;
-}
-
-/**
- * A weighted sample: a record's metric values contributing a fractional
- * time weight to a km bucket.
- */
-interface WeightedRecord {
-  record: Run2MaxRecord;
-  weight: number; // 0..1, fraction of a full time interval
 }
 
 /**
@@ -89,31 +79,13 @@ export function computeKmSplits(
     .map((bucket, i) => buildKmSplitRow(bucket, i + 1, zones, capabilities));
 }
 
-function weightedAvg(
-  bucket: WeightedRecord[],
-  accessor: (r: Run2MaxRecord) => number | null | undefined,
-): number | null {
-  let sum = 0;
-  let totalWeight = 0;
-
-  for (const { record, weight } of bucket) {
-    const value = accessor(record);
-    if (value != null) {
-      sum += value * weight;
-      totalWeight += weight;
-    }
-  }
-
-  return totalWeight === 0 ? null : sum / totalWeight;
-}
-
 function buildKmSplitRow(
   bucket: WeightedRecord[],
   km: number,
   zones: ZoneConfig[] | undefined,
   capabilities: DataCapabilities,
 ): KmSplitRow {
-  const totalWeight = bucket.reduce((sum, w) => sum + w.weight, 0);
+  const totalWeight = bucket.reduce((sum, w) => sum + (w.weight ?? 1), 0);
   const duration = totalWeight; // each full weight = 1 second
 
   // Distance for this split: sum of weighted distance deltas
@@ -124,44 +96,11 @@ function buildKmSplitRow(
   // For partial splits, use actual distance; for full splits, it should be ~1000m
   const actualDistance = distance > 0 ? distance : totalWeight;
 
-  const avgPower = weightedAvg(bucket, (r) => r.power ?? null);
-  const avgHeartRate = weightedAvg(bucket, (r) => r.heartRate ?? null);
-  const avgCadence = weightedAvg(bucket, (r) => r.cadence ?? null);
+  const aggregated = aggregateBucket(bucket, { capabilities, zones });
 
   const avgPace =
     actualDistance > 0 ? duration / (actualDistance / 1000) : null;
 
-  const zone =
-    avgPower != null && zones ? classifyPowerZone(avgPower, zones) : null;
-
-  // Tier 2
-  const avgStanceTime = capabilities.hasRunningDynamics
-    ? weightedAvg(bucket, (r) => r.stanceTime ?? null)
-    : null;
-  const avgStanceTimeBalance = capabilities.hasRunningDynamics
-    ? weightedAvg(bucket, (r) => r.stanceTimeBalance ?? null)
-    : null;
-  const avgStepLength = capabilities.hasRunningDynamics
-    ? weightedAvg(bucket, (r) => r.stepLength ?? null)
-    : null;
-  const avgVerticalOscillation = capabilities.hasRunningDynamics
-    ? weightedAvg(bucket, (r) => r.verticalOscillation ?? null)
-    : null;
-
-  // Derived: vertical ratio (Tier 2)
-  const verticalRatio =
-    avgVerticalOscillation != null && avgStepLength != null && avgStepLength > 0
-      ? (avgVerticalOscillation / avgStepLength) * 100
-      : null;
-
-  // Derived: form power ratio (Tier 3)
-  const avgFormPower = capabilities.hasStrydEnhanced
-    ? weightedAvg(bucket, (r) => r.formPower ?? null)
-    : null;
-  const formPowerRatio =
-    avgFormPower != null && avgPower != null && avgPower > 0
-      ? avgFormPower / avgPower
-      : null;
 
   // Elevation
   const bucketRecords = bucket.map((w) => w.record);
@@ -171,28 +110,24 @@ function buildKmSplitRow(
   const elevLoss = splitElev?.loss ?? null;
 
   // Tier 3: air power
-  const avgAirPower = capabilities.hasStrydEnhanced
-    ? weightedAvg(bucket, (r) => r.airPower ?? null)
-    : null;
-
   return {
     km,
     distance: actualDistance,
     duration,
-    avgPower,
-    zone,
+    avgPower: aggregated.avgPower,
+    zone: aggregated.zone,
     avgPace,
-    avgHeartRate,
-    avgCadence,
-    avgStanceTime,
-    avgStanceTimeBalance,
-    avgStepLength,
-    avgVerticalOscillation,
-    formPowerRatio,
-    verticalRatio,
+    avgHeartRate: aggregated.avgHeartRate,
+    avgCadence: aggregated.avgCadence,
+    avgStanceTime: aggregated.avgStanceTime,
+    avgStanceTimeBalance: aggregated.avgStanceTimeBalance,
+    avgStepLength: aggregated.avgStepLength,
+    avgVerticalOscillation: aggregated.avgVerticalOscillation,
+    formPowerRatio: aggregated.formPowerRatio,
+    verticalRatio: aggregated.verticalRatio,
     elevGain,
     elevLoss,
-    avgAirPower,
+    avgAirPower: aggregated.avgAirPower,
     windSpeed: null,
     windDirection: null,
     temperature: null,

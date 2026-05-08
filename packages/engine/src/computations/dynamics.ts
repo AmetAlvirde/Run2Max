@@ -1,5 +1,5 @@
 import type { Run2MaxRecord, DynamicsSummary, DataCapabilities } from "../types.js";
-import { avg } from "./utils.js";
+import { aggregateBucket } from "./aggregate.js";
 
 /**
  * Compute aggregated running dynamics summary.
@@ -13,35 +13,19 @@ export function computeDynamicsSummary(
     return null;
   }
 
-  // Tier 2
-  const avgStanceTime = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stanceTime ?? null))
-    : null;
-  const avgStanceTimeBalance = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stanceTimeBalance ?? null))
-    : null;
-  const avgStepLength = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stepLength ?? null))
-    : null;
-  const avgVerticalOscillation = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.verticalOscillation ?? null))
-    : null;
-  const avgVerticalOscillationBalance = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.verticalOscillationBalance ?? null))
-    : null;
+  const aggregated = aggregateBucket(
+    records.map((record) => ({ record })),
+    { capabilities },
+  );
 
-  // Tier 3
-  const avgFormPower = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.formPower ?? null))
-    : null;
-  const avgAirPower = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.airPower ?? null))
+  const avgVerticalOscillationBalance = capabilities.hasRunningDynamics
+    ? average(records.map((r) => r.verticalOscillationBalance ?? null))
     : null;
   const avgLegSpringStiffness = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.legSpringStiffness ?? null))
+    ? average(records.map((r) => r.legSpringStiffness ?? null))
     : null;
   const avgLegSpringStiffnessBalance = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.legSpringStiffnessBalance ?? null))
+    ? average(records.map((r) => r.legSpringStiffnessBalance ?? null))
     : null;
 
   // Derived: form power ratio (compute from records where both exist)
@@ -77,16 +61,27 @@ export function computeDynamicsSummary(
   }
 
   return {
-    avgStanceTime,
-    avgStanceTimeBalance,
-    avgStepLength,
-    avgVerticalOscillation,
+    avgStanceTime: aggregated.avgStanceTime,
+    avgStanceTimeBalance: aggregated.avgStanceTimeBalance,
+    avgStepLength: aggregated.avgStepLength,
+    avgVerticalOscillation: aggregated.avgVerticalOscillation,
     avgVerticalOscillationBalance,
-    avgFormPower,
-    avgAirPower,
+    avgFormPower: aggregated.avgFormPower,
+    avgAirPower: aggregated.avgAirPower,
     avgLegSpringStiffness,
     avgLegSpringStiffnessBalance,
     avgFormPowerRatio,
     avgVerticalRatio,
   };
+}
+
+function average(values: readonly (number | null)[]): number | null {
+  let sum = 0;
+  let count = 0;
+  for (const value of values) {
+    if (value == null) continue;
+    sum += value;
+    count += 1;
+  }
+  return count === 0 ? null : sum / count;
 }

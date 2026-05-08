@@ -5,8 +5,7 @@ import type {
   ZoneConfig,
   DataCapabilities,
 } from "../types.js";
-import { avg } from "./utils.js";
-import { classifyPowerZone } from "./zones.js";
+import { aggregateBucket } from "./aggregate.js";
 import { computeSplitElevation, getAltitude } from "./elevation.js";
 
 /**
@@ -81,45 +80,13 @@ function buildSegmentRow(
   const lastDist = distances.findLast((d) => d != null) ?? 0;
   const distance = lastDist - firstDist;
   const duration = records.length; // 1 record = 1 time interval
-
-  const avgPower = avg(records.map((r) => r.power ?? null));
-  const avgHeartRate = avg(records.map((r) => r.heartRate ?? null));
-  const avgCadence = avg(records.map((r) => r.cadence ?? null));
+  const aggregated = aggregateBucket(
+    records.map((record) => ({ record })),
+    { capabilities, zones },
+  );
 
   const avgPace =
     distance > 0 ? duration / (distance / 1000) : null;
-
-  const zone =
-    avgPower != null && zones ? classifyPowerZone(avgPower, zones) : null;
-
-  // Tier 2
-  const avgStanceTime = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stanceTime ?? null))
-    : null;
-  const avgStanceTimeBalance = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stanceTimeBalance ?? null))
-    : null;
-  const avgStepLength = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.stepLength ?? null))
-    : null;
-  const avgVerticalOscillation = capabilities.hasRunningDynamics
-    ? avg(records.map((r) => r.verticalOscillation ?? null))
-    : null;
-
-  // Derived: vertical ratio (Tier 2)
-  const verticalRatio =
-    avgVerticalOscillation != null && avgStepLength != null && avgStepLength > 0
-      ? (avgVerticalOscillation / avgStepLength) * 100
-      : null;
-
-  // Derived: form power ratio (Tier 3)
-  const avgFormPower = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.formPower ?? null))
-    : null;
-  const formPowerRatio =
-    avgFormPower != null && avgPower != null && avgPower > 0
-      ? avgFormPower / avgPower
-      : null;
 
   // Elevation
   const hasAltitudeData = records.some((r) => getAltitude(r) !== null);
@@ -128,28 +95,24 @@ function buildSegmentRow(
   const elevLoss = splitElev?.loss ?? null;
 
   // Tier 3: air power
-  const avgAirPower = capabilities.hasStrydEnhanced
-    ? avg(records.map((r) => r.airPower ?? null))
-    : null;
-
   return {
     lapIndex,
     distance,
     duration,
-    avgPower,
-    zone,
+    avgPower: aggregated.avgPower,
+    zone: aggregated.zone,
     avgPace,
-    avgHeartRate,
-    avgCadence,
-    avgStanceTime,
-    avgStanceTimeBalance,
-    avgStepLength,
-    avgVerticalOscillation,
-    formPowerRatio,
-    verticalRatio,
+    avgHeartRate: aggregated.avgHeartRate,
+    avgCadence: aggregated.avgCadence,
+    avgStanceTime: aggregated.avgStanceTime,
+    avgStanceTimeBalance: aggregated.avgStanceTimeBalance,
+    avgStepLength: aggregated.avgStepLength,
+    avgVerticalOscillation: aggregated.avgVerticalOscillation,
+    formPowerRatio: aggregated.formPowerRatio,
+    verticalRatio: aggregated.verticalRatio,
     elevGain,
     elevLoss,
-    avgAirPower,
+    avgAirPower: aggregated.avgAirPower,
     windSpeed: null,
     windDirection: null,
     temperature: null,

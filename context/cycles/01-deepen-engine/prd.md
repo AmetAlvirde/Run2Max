@@ -173,11 +173,10 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
   #32), and `parsePlan` in `plan/schema.ts` returns the named `Plan`. This
   removed the public inferred-type chain while keeping schema/runtime
   validation in `schema.ts`.
-- `MUST RESOLVE`: What is the shape of the unified split-aggregator
-  parameter — a `bucketBy` strategy function returning bucket keys, or a
-  pre-bucketed `Slice[]` input the aggregator just reduces over? Affects
-  whether segments and km-splits share more than just row construction.
-  Decided in the split-aggregator sub-PRD.
+- `RESOLVED IN IMPLEMENTATION`: The unified split-aggregator parameter uses
+  pre-bucketed input (`aggregateBucket(bucket, config)`) rather than a
+  `bucketBy` strategy surface. Decision captured during parent issue #38 /
+  sub-issue #39 and recorded in ADR 0003.
 - `RESOLVE THROUGH IMPLEMENTATION`: Final shape of the engine's public
   export grouping. Target shape will emerge as parent issues land; the
   `index.ts` is rewritten last, once all internal seams settle.
