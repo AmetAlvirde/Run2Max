@@ -139,3 +139,40 @@ lands and the parent has a basis for sizing the remaining work.
   Periodization rather than Infrastructure, or why a particular
   shallow export was kept rather than folded). Otherwise the AAR is
   sufficient.
+
+- [ ] [48-audit-and-grouping-design -> 49-apply-manifest]
+
+  Sub-issue #48 landed the full export manifest (KEEP 29 / FOLD 5 / HIDE 65)
+  and chose the glossary-aligned grouping shape. The apply sub-issue must
+  rewrite `packages/engine/src/index.ts` to exactly match the manifest and
+  update CLI imports in the same PR where classifications require it.
+
+  Files to review:
+  - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/sub-issue.md
+  - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/manifest.md
+
+  (See source AAR for full context)
+
+- [ ] [48-audit-and-grouping-design -> 50-template-api-fold]
+
+  The audit classified `loadUserTemplates`, `resolveTemplate`, and
+  `BUILTIN_TEMPLATES` as FOLD, with a deeper intent-level template access
+  surface proposed. If parent #47 keeps fold work in-scope, create and execute
+  this fold as a dedicated sub-issue instead of mixing it into mechanical
+  regrouping.
+
+  Files to review:
+  - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/manifest.md
+
+  (See source AAR for full context)
+
+- [ ] [48-audit-and-grouping-design -> 51-plan-status-formatter-fold]
+
+  The audit classified `formatDefaultView` and `formatFullView` as FOLD toward
+  a single view-parameterized formatter API. This needs explicit API design and
+  migration planning; treat it as its own sub-issue if adopted.
+
+  Files to review:
+  - context/cycles/01-deepen-engine/issues/47-public-api-regrouping/48-audit-and-grouping-design/manifest.md
+
+  (See source AAR for full context)
