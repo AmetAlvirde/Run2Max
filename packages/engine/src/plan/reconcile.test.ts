@@ -4,6 +4,7 @@ import { getBuiltinTemplate } from "./templates/builtin.js";
 import { parsePlan } from "./schema.js";
 import { validatePlan } from "./validate.js";
 import type { PlanTemplate } from "./templates/types.js";
+import { walkPlan } from "./walk.js";
 
 const TWO_MESO_RACE = getBuiltinTemplate("2-meso-race")!;
 
@@ -16,7 +17,7 @@ const OVERFLOW_BY_2_START = "2026-07-27"; // availableWeeks = 13 → overflow by
 const UNDERFLOW_START = "2026-06-01";   // availableWeeks = 21 → underflow by 6
 
 function allWeeks(plan: ReturnType<typeof reconcile>["plan"]) {
-  return plan!.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks));
+  return walkPlan(plan!).map((c) => c.week);
 }
 
 // ─── exact fit ───────────────────────────────────────────────────────────────
@@ -468,8 +469,6 @@ describe("reconcile — strategy by number", () => {
     const byNumber = reconcile({ ...opts, strategy: "1" });
     expect(byNumber.fit).toBe(byName.fit);
     expect(byNumber.plan?.start).toBe(byName.plan?.start);
-    expect(byNumber.plan?.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks)).length).toBe(
-      byName.plan?.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks)).length
-    );
+    expect(walkPlan(byNumber.plan!).length).toBe(walkPlan(byName.plan!).length);
   });
 });

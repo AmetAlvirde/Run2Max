@@ -10,6 +10,7 @@ import {
   scanBlockRuns,
   detectWeekDeviations,
   reportHasAnomalies,
+  walkPlan,
 } from "@run2max/engine";
 import type { OutputFormat, OutputProfileConfig, Plan, MicrocycleConfig } from "@run2max/engine";
 
@@ -292,31 +293,14 @@ async function warnIfPreviousWeekUnsynced(
 
   const prevWeekNumber = currentWeekNumber - 1;
 
-  // Flatten plan weeks
-  const flatWeeks: Array<{
-    absoluteIndex: number;
-    totalWeeks: number;
-    start: string;
-    planned: string;
-    executed?: string;
-  }> = [];
-
-  let idx = 1;
-  for (const meso of plan.mesocycles) {
-    for (const fractal of meso.fractals) {
-      for (const week of fractal.weeks) {
-        flatWeeks.push({
-          absoluteIndex: idx++,
-          totalWeeks: 0,
-          start: week.start,
-          planned: week.planned,
-          executed: week.executed,
-        });
-      }
-    }
-  }
+  const flatWeeks = walkPlan(plan).map((ctx) => ({
+    absoluteIndex: ctx.absoluteIndex,
+    totalWeeks: ctx.totalWeeks,
+    start: ctx.week.start,
+    planned: ctx.week.planned,
+    executed: ctx.week.executed,
+  }));
   const totalWeeks = flatWeeks.length;
-  for (const w of flatWeeks) w.totalWeeks = totalWeeks;
 
   const prevWeek = flatWeeks.find((w) => w.absoluteIndex === prevWeekNumber);
   if (!prevWeek || prevWeek.executed !== undefined) return;

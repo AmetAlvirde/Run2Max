@@ -75,7 +75,13 @@ function cloneTemplate(t: PlanTemplate): PlanTemplate {
 }
 
 function flatWeeks(template: PlanTemplate): string[] {
-  return template.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f));
+  const weeks: string[] = [];
+  for (const mesocycle of template.mesocycles) {
+    for (const fractal of mesocycle.fractals) {
+      weeks.push(...fractal);
+    }
+  }
+  return weeks;
 }
 
 function raceIndex(template: PlanTemplate): number {

@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import type { Plan } from "./types.js";
+import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,34 +78,14 @@ export function associateRun(
 ): WeekAssociation | null {
   const localDate = toLocalDate(activityDate, timezone);
 
-  // Flatten all weeks from every mesocycle/fractal with structural metadata.
-  const flatWeeks: Array<{
-    weekNumber: number;
-    weekType: string;
-    mesocycle: string;
-    fractalIndex: number;
-    totalFractals: number;
-    weekStart: string;
-  }> = [];
-
-  let idx = 1;
-  for (const meso of plan.mesocycles) {
-    const totalFractals = meso.fractals.length;
-    let fi = 1;
-    for (const fractal of meso.fractals) {
-      for (const week of fractal.weeks) {
-        flatWeeks.push({
-          weekNumber: idx++,
-          weekType: week.planned,
-          mesocycle: meso.name,
-          fractalIndex: fi,
-          totalFractals,
-          weekStart: week.start,
-        });
-      }
-      fi++;
-    }
-  }
+  const flatWeeks = walkPlan(plan).map((ctx) => ({
+    weekNumber: ctx.absoluteIndex,
+    weekType: ctx.week.planned,
+    mesocycle: ctx.mesocycleName,
+    fractalIndex: ctx.fractalIndex + 1,
+    totalFractals: ctx.totalFractals,
+    weekStart: ctx.week.start,
+  }));
 
   const totalWeeks = flatWeeks.length;
 

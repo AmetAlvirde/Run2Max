@@ -1,4 +1,5 @@
 import type { Plan, TestingPeriod } from "./types.js";
+import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -32,37 +33,6 @@ export class SyncError extends Error {
 // ---------------------------------------------------------------------------
 
 const TEST_WEEK_TYPES = new Set(["Ta", "Tb"]);
-
-interface FlatWeek {
-  absoluteIndex: number; // 1-based
-  mesoIndex: number;
-  fractalIndex: number;
-  weekIndex: number;
-  executed?: string;
-}
-
-function flattenWeeks(plan: Plan): FlatWeek[] {
-  const result: FlatWeek[] = [];
-  let idx = 1;
-
-  for (let mi = 0; mi < plan.mesocycles.length; mi++) {
-    const meso = plan.mesocycles[mi]!;
-    for (let fi = 0; fi < meso.fractals.length; fi++) {
-      const fractal = meso.fractals[fi]!;
-      for (let wi = 0; wi < fractal.weeks.length; wi++) {
-        result.push({
-          absoluteIndex: idx++,
-          mesoIndex: mi,
-          fractalIndex: fi,
-          weekIndex: wi,
-          executed: fractal.weeks[wi]!.executed,
-        });
-      }
-    }
-  }
-
-  return result;
-}
 
 /**
  * Finds the index (within the fractal's weeks array) of the last consecutive
@@ -117,10 +87,10 @@ function clonePlan(plan: Plan): Plan {
  * @throws SyncError when the week cannot be synced (already synced or future)
  */
 export function syncWeek(plan: Plan, weekIndex: number, syncData: SyncData): Plan {
-  const flatWeeks = flattenWeeks(plan);
+  const flatWeeks = walkPlan(plan);
 
   // Find the frontier: the first unexecuted week (0-based position in flatWeeks)
-  const frontierFlatIdx = flatWeeks.findIndex((w) => w.executed === undefined);
+  const frontierFlatIdx = flatWeeks.findIndex((w) => w.week.executed === undefined);
 
   // Locate the target week (0-based in flatWeeks)
   const targetFlatIdx = weekIndex - 1;
@@ -131,7 +101,7 @@ export function syncWeek(plan: Plan, weekIndex: number, syncData: SyncData): Pla
   }
 
   // Reject already-synced weeks (executed is frozen)
-  if (target.executed !== undefined) {
+  if (target.week.executed !== undefined) {
     throw new SyncError(
       `week ${weekIndex} is already synced and cannot be modified`,
       "ALREADY_SYNCED",
@@ -149,8 +119,8 @@ export function syncWeek(plan: Plan, weekIndex: number, syncData: SyncData): Pla
 
   const updated = clonePlan(plan);
 
-  const { mesoIndex, fractalIndex, weekIndex: wi } = target;
-  const fractalWeeks = updated.mesocycles[mesoIndex]!.fractals[fractalIndex]!.weeks;
+  const { mesocycleIndex, fractalIndex, weekIndex: wi } = target;
+  const fractalWeeks = updated.mesocycles[mesocycleIndex]!.fractals[fractalIndex]!.weeks;
   const week = fractalWeeks[wi]!;
 
   // Apply execution status and optional fields

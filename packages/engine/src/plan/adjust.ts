@@ -2,6 +2,8 @@ import type { Plan } from "./types.js";
 import type { PlanTemplate } from "./templates/types.js";
 import { reconcile } from "./reconcile.js";
 import type { CompressionOption } from "./reconcile.js";
+import { walkPlan } from "./walk.js";
+import type { WeekContext } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -35,50 +37,8 @@ export class AdjustError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Internal types
-// ---------------------------------------------------------------------------
-
-interface FlatWeek {
-  absoluteIndex: number; // 1-based
-  mesoIndex: number;
-  fractalIndex: number;
-  weekIndex: number;
-  planned: string;
-  start: string;
-  executed?: string;
-  note?: string;
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function flattenWeeks(plan: Plan): FlatWeek[] {
-  const result: FlatWeek[] = [];
-  let idx = 1;
-
-  for (let mi = 0; mi < plan.mesocycles.length; mi++) {
-    const meso = plan.mesocycles[mi]!;
-    for (let fi = 0; fi < meso.fractals.length; fi++) {
-      const fractal = meso.fractals[fi]!;
-      for (let wi = 0; wi < fractal.weeks.length; wi++) {
-        const week = fractal.weeks[wi]!;
-        result.push({
-          absoluteIndex: idx++,
-          mesoIndex: mi,
-          fractalIndex: fi,
-          weekIndex: wi,
-          planned: week.planned,
-          start: week.start,
-          executed: week.executed,
-          note: week.note,
-        });
-      }
-    }
-  }
-
-  return result;
-}
 
 /**
  * Builds a PlanTemplate from the adjustable (future) portion of the plan.
@@ -89,22 +49,29 @@ function flattenWeeks(plan: Plan): FlatWeek[] {
  */
 function extractFutureTemplate(
   plan: Plan,
-  flatWeeks: FlatWeek[],
+  flatWeeks: readonly WeekContext[],
   frontierIdx: number,
 ): PlanTemplate {
   const frontier = flatWeeks[frontierIdx]!;
-  const { mesoIndex: fMi, fractalIndex: fFi, weekIndex: fWi } = frontier;
+  const {
+    mesocycleIndex: frontierMesocycleIndex,
+    fractalIndex: frontierFractalIndex,
+    weekIndex: frontierWeekIndex,
+  } = frontier;
 
   const mesocycles: PlanTemplate["mesocycles"] = [];
 
-  for (let mi = fMi; mi < plan.mesocycles.length; mi++) {
-    const meso = plan.mesocycles[mi]!;
-    const startFi = mi === fMi ? fFi : 0;
+  const frontierAndFutureMesocycles = plan.mesocycles.slice(frontierMesocycleIndex);
+
+  for (let mesocycleOffset = 0; mesocycleOffset < frontierAndFutureMesocycles.length; mesocycleOffset++) {
+    const meso = frontierAndFutureMesocycles[mesocycleOffset]!;
+    const isFrontierMesocycle = mesocycleOffset === 0;
+    const startFi = isFrontierMesocycle ? frontierFractalIndex : 0;
     const fractals: string[][] = [];
 
     for (let fi = startFi; fi < meso.fractals.length; fi++) {
       const fractal = meso.fractals[fi]!;
-      const startWi = mi === fMi && fi === fFi ? fWi : 0;
+      const startWi = isFrontierMesocycle && fi === frontierFractalIndex ? frontierWeekIndex : 0;
       const weekTypes = fractal.weeks.slice(startWi).map((w) => w.planned);
       if (weekTypes.length > 0) {
         fractals.push(weekTypes);
@@ -144,18 +111,22 @@ function clonePlan(plan: Plan): Plan {
  */
 function mergeFrozenAndFuture(
   originalPlan: Plan,
-  flatWeeks: FlatWeek[],
+  flatWeeks: readonly WeekContext[],
   frontierIdx: number,
   futurePlan: Plan,
   newRaceDate?: string,
 ): Plan {
   const frontier = flatWeeks[frontierIdx]!;
-  const { mesoIndex: fMi, fractalIndex: fFi, weekIndex: fWi } = frontier;
+  const {
+    mesocycleIndex: frontierMesocycleIndex,
+    fractalIndex: frontierFractalIndex,
+    weekIndex: frontierWeekIndex,
+  } = frontier;
 
   // Build the frozen mesocycles that come entirely before the frontier mesocycle
   const outputMesos: Plan["mesocycles"] = [];
 
-  for (let mi = 0; mi < fMi; mi++) {
+  for (let mi = 0; mi < frontierMesocycleIndex; mi++) {
     const meso = originalPlan.mesocycles[mi]!;
     outputMesos.push({
       ...meso,
@@ -167,20 +138,22 @@ function mergeFrozenAndFuture(
   }
 
   // Collect frozen fractals from the frontier mesocycle
-  const frontierMeso = originalPlan.mesocycles[fMi]!;
+  const frontierMeso = originalPlan.mesocycles[frontierMesocycleIndex]!;
   const frozenFractals: Plan["mesocycles"][number]["fractals"] = [];
 
   // Fractals entirely before the frontier fractal
-  for (let fi = 0; fi < fFi; fi++) {
+  for (let fi = 0; fi < frontierFractalIndex; fi++) {
     frozenFractals.push({
       weeks: frontierMeso.fractals[fi]!.weeks.map((w) => ({ ...w })),
     });
   }
 
   // Frozen portion of the frontier fractal (if frontier is mid-fractal)
-  if (fWi > 0) {
+  if (frontierWeekIndex > 0) {
     frozenFractals.push({
-      weeks: frontierMeso.fractals[fFi]!.weeks.slice(0, fWi).map((w) => ({ ...w })),
+      weeks: frontierMeso.fractals[frontierFractalIndex]!.weeks
+        .slice(0, frontierWeekIndex)
+        .map((w) => ({ ...w })),
     });
   }
 
@@ -195,7 +168,11 @@ function mergeFrozenAndFuture(
 
     let combinedFractals: Plan["mesocycles"][number]["fractals"];
 
-    if (fWi > 0 && frozenFractals.length > 0 && futureFractalsFromFrontierMeso.length > 0) {
+    if (
+      frontierWeekIndex > 0 &&
+      frozenFractals.length > 0 &&
+      futureFractalsFromFrontierMeso.length > 0
+    ) {
       // Last frozen fractal and first future fractal are both parts of the
       // same original fractal — merge their weeks into a single fractal.
       const mergedBoundaryFractal = {
@@ -247,18 +224,18 @@ function mergeFrozenAndFuture(
  */
 function preserveFutureNotes(
   mergedPlan: Plan,
-  originalFlatWeeks: FlatWeek[],
+  originalFlatWeeks: readonly WeekContext[],
   frontierIdx: number,
 ): Plan {
   // Collect (relativeIdx, planned, note) from original future weeks
   const originalFutureNotes: Array<{ relPos: number; planned: string; note: string }> = [];
   for (let i = frontierIdx; i < originalFlatWeeks.length; i++) {
     const fw = originalFlatWeeks[i]!;
-    if (fw.note !== undefined) {
+    if (fw.week.note !== undefined) {
       originalFutureNotes.push({
         relPos: i - frontierIdx,
-        planned: fw.planned,
-        note: fw.note,
+        planned: fw.week.planned,
+        note: fw.week.note,
       });
     }
   }
@@ -267,15 +244,13 @@ function preserveFutureNotes(
 
   // Flatten future weeks in merged plan
   // Count frozen weeks (those with executed) — the future weeks come after
-  const mergedFlat = mergedPlan.mesocycles.flatMap((m) =>
-    m.fractals.flatMap((f) => f.weeks),
-  );
+  const mergedFlat = walkPlan(mergedPlan).map((ctx) => ctx.week);
 
   const frozenCount = mergedFlat.filter((w) => w.executed !== undefined).length;
 
   // Apply notes where planned type matches at same relative position
   const result = clonePlan(mergedPlan);
-  const resultFlat = result.mesocycles.flatMap((m) => m.fractals.flatMap((f) => f.weeks));
+  const resultFlat = walkPlan(result).map((ctx) => ctx.week);
 
   for (const { relPos, planned, note } of originalFutureNotes) {
     const targetIdx = frozenCount + relPos;
@@ -304,10 +279,10 @@ function preserveFutureNotes(
  * @throws AdjustError when no future weeks exist or strategy is impossible
  */
 export function adjustPlan(plan: Plan, options: AdjustOptions): AdjustResult {
-  const flat = flattenWeeks(plan);
+  const flat = walkPlan(plan);
 
   // Find the frontier: first week without executed
-  const frontierIdx = flat.findIndex((w) => w.executed === undefined);
+  const frontierIdx = flat.findIndex((w) => w.week.executed === undefined);
 
   if (frontierIdx === -1) {
     throw new AdjustError(
@@ -317,7 +292,7 @@ export function adjustPlan(plan: Plan, options: AdjustOptions): AdjustResult {
   }
 
   const futureTemplate = extractFutureTemplate(plan, flat, frontierIdx);
-  const startOfFuture = flat[frontierIdx]!.start;
+  const startOfFuture = flat[frontierIdx]!.week.start;
   const effectiveRaceDate = options.raceDate ?? plan.raceDate;
 
   // ── Informational mode ─────────────────────────────────────────────────────

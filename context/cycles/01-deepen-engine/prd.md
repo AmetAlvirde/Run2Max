@@ -164,11 +164,10 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
 
 ## Open questions
 
-- `MUST RESOLVE`: Is the Plan walker exposed as a single iterator
-  (`for (const ctx of walkPlan(plan))`) or as a small object with named
-  reducers (`mapWeeks`, `findWeek`, `flattenWeeks`)? Answer informs every
-  call site in the cycle. To be decided in the Plan-walker sub-PRD via
-  design-it-twice.
+- `RESOLVED IN IMPLEMENTATION`: The Plan walker is exposed as a single eager
+  array primitive, `walkPlan(plan): readonly WeekContext[]`, not a named
+  reducer set. This was decided in parent issue #35 (sub-issue #36) via
+  design-it-twice and captured in ADR 0001.
 - `RESOLVED IN IMPLEMENTATION`: Named `Plan` / `Mesocycle` / `Fractal` /
   `Week` / `TestingPeriod` interfaces live in `plan/types.ts` (parent issue
   #32), and `parsePlan` in `plan/schema.ts` returns the named `Plan`. This

@@ -1,6 +1,7 @@
 import type { Plan } from "./types.js";
 import type { DeviationReport } from "./detect.js";
 import { reportHasAnomalies } from "./detect.js";
+import { walkPlan } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -78,42 +79,16 @@ export function getPlanStatus(
   today: string = new Date().toISOString().slice(0, 10),
   options?: PlanStatusOptions,
 ): PlanStatus {
-  // ------------------------------------------------------------------
-  // Flatten weeks with structural context
-  // ------------------------------------------------------------------
-  interface RawEntry {
-    absoluteIndex: number;
-    mesocycleName: string;
-    fractalIndex: number;
-    totalFractals: number;
-    planned: string;
-    start: string;
-    executed?: string;
-    reason?: string;
-  }
-
-  const raw: RawEntry[] = [];
-  let idx = 1;
-
-  for (const meso of plan.mesocycles) {
-    const totalFractals = meso.fractals.length;
-    let fi = 1;
-    for (const fractal of meso.fractals) {
-      for (const week of fractal.weeks) {
-        raw.push({
-          absoluteIndex: idx++,
-          mesocycleName: meso.name,
-          fractalIndex: fi,
-          totalFractals,
-          planned: week.planned,
-          start: week.start,
-          executed: week.executed,
-          reason: week.reason,
-        });
-      }
-      fi++;
-    }
-  }
+  const raw = walkPlan(plan).map((ctx) => ({
+    absoluteIndex: ctx.absoluteIndex,
+    mesocycleName: ctx.mesocycleName,
+    fractalIndex: ctx.fractalIndex + 1,
+    totalFractals: ctx.totalFractals,
+    planned: ctx.week.planned,
+    start: ctx.week.start,
+    executed: ctx.week.executed,
+    reason: ctx.week.reason,
+  }));
 
   const totalWeeks = raw.length;
   const isComplete = raw.every((w) => w.executed !== undefined);
