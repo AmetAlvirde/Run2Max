@@ -4,8 +4,7 @@
 > features. Sub-PRDs and parent issues will live in this cycle's folder
 > alongside this document.
 >
-> Status: in progress. Parent #41 is closed; cycle-level closure is pending
-> remaining work.
+> Status: closed. Cycle AAR and decision recorded in `aar.md`.
 
 ## Focus
 
@@ -180,16 +179,20 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
   pre-bucketed input (`aggregateBucket(bucket, config)`) rather than a
   `bucketBy` strategy surface. Decision captured during parent issue #38 /
   sub-issue #39 and recorded in ADR 0003.
-- `RESOLVE THROUGH IMPLEMENTATION`: Final shape of the engine's public
-  export grouping. Target shape will emerge as parent issues land; the
-  `index.ts` is rewritten last, once all internal seams settle.
+- `RESOLVED IN IMPLEMENTATION`: Final engine public export grouping is
+  glossary-led and ordered as Periodization, Runs and capture, Metrics and
+  zones, Analysis output, then Infrastructure (parent issue #47). The final
+  public surface reached 32 exports with explicit retention rationale for the
+  two over-target exports, recorded in parent #47 AAR.
 - `RESOLVED IN IMPLEMENTATION`: Plan-status formatters live in
   `packages/engine/src/formatters/plan.ts` and remain exported from the
   engine public surface (via `index.ts`) rather than moving CLI-internal.
   Decision was made in parent issue #41 / sub-issue #42 and captured in
   ADR 0004. This marks the question resolved for that parent; it does not
   imply cycle closure.
-- `RESOLVE THROUGH IMPLEMENTATION`: Whether the cycle produces an ADR for
-  "valibot inferred types are not public types." Likely yes, but written
-  only after the named-interfaces parent issue closes so the ADR records a
-  real decision, not a hypothetical one.
+- `RESOLVED IN IMPLEMENTATION`: No additional ADR was required for "valibot
+  inferred types are not public types" beyond the named-interface placement
+  decision captured in ADR 0002. The practical policy is now enforced by
+  module shape (`plan/types.ts` for named interfaces, parser/runtime schema in
+  `plan/schema.ts`) and carried as cycle-level convention rather than a
+  separate ADR.

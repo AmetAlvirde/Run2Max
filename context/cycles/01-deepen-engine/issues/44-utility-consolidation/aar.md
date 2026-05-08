@@ -1,0 +1,6 @@
+1. Did it go as planned? Yes -- sub-issue #45 delivered the full parent #44 scope and acceptance criteria were met.
+2. What changed from the parent issue plan: No scope split was needed; all four consolidations landed in one slice, with nullable-distance reconciliation handled as planned by keeping canonical `getDistance` as `number | null` and applying `?? 0` only in km-splits call sites.
+3. ADRs made during this parent issue (reference INDEX.md rows): None. The utility-homing choices were local and reversible enough to document in sub-issue and parent AARs without a new ADR.
+4. New considerations or constraints surfaced: Closure checks should continue to pair behavior tests with package DTS build verification; helper-consolidation refactors can keep tests green while still risking declaration-surface regressions.
+5. Patterns across sub-issue AARs: The highest leverage came from canonical-home decisions made before edits; once homes were explicit, migration was mechanical and low-risk.
+6. Carry-forward -- flags to write in the cycle, notes for the PRD AAR: The cycle success metric for duplicate helpers is now satisfied for this parent's scope, and cycle close should record utility consolidation as complete with no remaining active flags from parent #44.
