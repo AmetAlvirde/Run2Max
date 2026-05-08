@@ -3,6 +3,9 @@
 > High-level PRD for the foundation refactor cycle. No new user-facing
 > features. Sub-PRDs and parent issues will live in this cycle's folder
 > alongside this document.
+>
+> Status: in progress. Parent #41 is closed; cycle-level closure is pending
+> remaining work.
 
 ## Focus
 
@@ -180,10 +183,12 @@ documented `TS2589` workaround. The CLI shrinks to a thin shell on top.
 - `RESOLVE THROUGH IMPLEMENTATION`: Final shape of the engine's public
   export grouping. Target shape will emerge as parent issues land; the
   `index.ts` is rewritten last, once all internal seams settle.
-- `RESOLVE THROUGH IMPLEMENTATION`: Whether `formatters/plan.ts` re-exports
-  a small public formatting API or stays CLI-internal. Depends on whether a
-  second access surface (web, etc.) materializes during the cycle — if not,
-  it stays CLI-internal.
+- `RESOLVED IN IMPLEMENTATION`: Plan-status formatters live in
+  `packages/engine/src/formatters/plan.ts` and remain exported from the
+  engine public surface (via `index.ts`) rather than moving CLI-internal.
+  Decision was made in parent issue #41 / sub-issue #42 and captured in
+  ADR 0004. This marks the question resolved for that parent; it does not
+  imply cycle closure.
 - `RESOLVE THROUGH IMPLEMENTATION`: Whether the cycle produces an ADR for
   "valibot inferred types are not public types." Likely yes, but written
   only after the named-interfaces parent issue closes so the ADR records a

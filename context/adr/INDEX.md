@@ -5,3 +5,4 @@
 | 0001 | Plan walker uses eager array context surface | product | accepted | Standardize Plan-tree traversal on `walkPlan(plan): readonly WeekContext[]` to replace inline loops and private flatten helpers. |
 | 0002 | Plan-family interfaces live in `plan/types.ts` | product | accepted | Keep public Plan domain types as named interfaces in a standalone module, separate from parser/schema definitions. |
 | 0003 | Split aggregation uses pre-bucketed input | product | accepted | Standardize shared aggregation on `aggregateBucket(bucket, config)` while keeping bucket discovery in each computation module. |
+| 0004 | Plan-status formatters live in engine formatters and remain engine-public | product | accepted | Keep plan-status rendering in `formatters/plan.ts` while continuing engine-surface exports for formatter consumers. |
