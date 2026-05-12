@@ -170,9 +170,6 @@ prior Runs in the same Comparison Group.
   Prescribed Run association during `quantify`?
 - MUST RESOLVE: What detailed-profile marker or validation rule proves a saved
   YAML/JSON artifact is detailed enough for history comparison?
-- MUST RESOLVE: Should the first implementation accept both ASCII `->` and
-  Unicode `→` in Prescription Notation, or normalize one canonical spelling in
-  stored Plans?
 - RESOLVE THROUGH IMPLEMENTATION: Exact structured output shape for the
   prescription-comparison section.
 - RESOLVE THROUGH IMPLEMENTATION: Exact unavailable-reason taxonomy for missing
@@ -180,3 +177,7 @@ prior Runs in the same Comparison Group.
   and missing RPE.
 - RESOLVE THROUGH IMPLEMENTATION: Whether history lookup prefers YAML over JSON
   or rejects same-basename ambiguity when both exist.
+
+Resolved during parent #53: Prescription Notation accepts both ASCII `->` and
+Unicode `→`; parsed output is the canonical ordered Prescribed Step sequence,
+while stored Plans preserve the runner's authored notation.
