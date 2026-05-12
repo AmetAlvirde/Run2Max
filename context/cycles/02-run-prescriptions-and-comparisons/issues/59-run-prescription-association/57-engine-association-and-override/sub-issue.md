@@ -1,6 +1,6 @@
 # Sub-Issue #57 -- Implement engine Prescribed Run association
 
-Vertical slice for parent #56. Delivers the pure engine association contract,
+Vertical slice for parent #59. Delivers the pure engine association contract,
 structured override options, and minimal `quantify` integration needed for
 downstream lap comparison. This sub-issue intentionally does not add the CLI
 override flag because the cycle PRD's access-surface question is still awaiting
@@ -331,12 +331,12 @@ Error modes:
   for matched, unmatched, and override association behavior.
 - `packages/engine/src/index.ts` -- export the association function and public
   result/option/context types.
-- `context/cycles/02-run-prescriptions-and-comparisons/issues/56-run-prescription-association/issue.md`
+- `context/cycles/02-run-prescriptions-and-comparisons/issues/59-run-prescription-association/issue.md`
   -- update only if implementation reveals a parent-level flag or scope change.
 
 ## Dependencies
 
-- Parent #56 must stay the active parent scope.
+- Parent #59 must stay the active parent scope.
 - Closed parent #53 provides parsed Prescribed Run data and expanded
   `PrescribedRun.steps`; do not reparse Prescription Notation here.
 - Cycle 01 parent #35 provides `walkPlan`; do not add another Plan traversal

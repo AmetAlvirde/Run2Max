@@ -1,6 +1,6 @@
 # Sub-Issue #58 -- Wire the CLI Prescribed Run override
 
-Vertical slice for parent #56. Delivers the `run2max quantify` access surface
+Vertical slice for parent #59. Delivers the `run2max quantify` access surface
 for choosing an intended Prescribed Run and maps that CLI input to the existing
 `QuantifyOptions.prescribedRunOverride` contract from sub-issue #57.
 
@@ -269,14 +269,14 @@ Error modes:
   if the README lists `quantify` options today.
 - `context/cycles/02-run-prescriptions-and-comparisons/prd.md` -- mark the CLI
   override open question resolved at sub-issue closure.
-- `context/cycles/02-run-prescriptions-and-comparisons/issues/56-run-prescription-association/issue.md`
+- `context/cycles/02-run-prescriptions-and-comparisons/issues/59-run-prescription-association/issue.md`
   -- replace the carry-forward flag with closure notes once implemented.
 
 ## Dependencies
 
 - Sub-issue #57 must remain closed and provides the existing structured engine
   option `QuantifyOptions.prescribedRunOverride`.
-- Parent #56 remains the active parent scope for Prescribed Run association.
+- Parent #59 remains the active parent scope for Prescribed Run association.
 - The CLI must prefer the parsed Plan loaded by `--plan`; when only
   `--prescribed-run` is supplied, it may add the narrow cwd `plan.yaml` fallback
   needed to avoid forcing `--plan .`.

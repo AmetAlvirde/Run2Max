@@ -166,7 +166,7 @@ prior Runs in the same Comparison Group.
 
 ## Open questions
 
-- Resolved during parent #56: `quantify` override uses
+- Resolved during parent #59: `quantify` override uses
   `--prescribed-run <selector>`. Bare `YYYY-MM-DD` and `date:YYYY-MM-DD` select
   by Prescribed Run local date; bare text and `label:<label>` select by label.
   `label:` is the escape hatch for date-shaped labels.
