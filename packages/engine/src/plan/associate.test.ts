@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { parsePlan } from "./schema.js";
-import { associateRun, scanBlockRuns, extractDisplayName } from "./associate.js";
+import { associateRun, findPrescribedRun, scanBlockRuns, extractDisplayName } from "./associate.js";
 
 // ---------------------------------------------------------------------------
 // Shared test fixture
@@ -53,6 +53,96 @@ function makePlan() {
           {
             weeks: [
               { planned: "P", start: "2026-07-06" },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
+function makePlanWithPrescribedRuns() {
+  return parsePlan({
+    schema_version: 1,
+    block: "build",
+    goal: "Half Marathon Santiago",
+    start: "2026-05-04",
+    mesocycles: [
+      {
+        name: "CANAL",
+        fractals: [
+          {
+            weeks: [
+              {
+                planned: "L",
+                start: "2026-05-04",
+                prescribed_runs: [
+                  {
+                    local_date: "2026-05-06",
+                    label: "Tuesday Intervals",
+                    prescription: "3min @ SUB-T[260-280W]",
+                    comparison_group: "sub-t-3min",
+                  },
+                ],
+              },
+              { planned: "LL", start: "2026-05-11" },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
+function makePlanForAssociationCases() {
+  return parsePlan({
+    schema_version: 1,
+    block: "build",
+    goal: "Half Marathon Santiago",
+    start: "2026-05-04",
+    mesocycles: [
+      {
+        name: "CANAL",
+        fractals: [
+          {
+            weeks: [
+              {
+                planned: "L",
+                start: "2026-05-04",
+                prescribed_runs: [
+                  {
+                    local_date: "2026-05-06",
+                    label: "Tuesday Intervals A",
+                    prescription: "3min @ SUB-T[260-280W]",
+                  },
+                  {
+                    local_date: "2026-05-06",
+                    label: "Tuesday Intervals B",
+                    prescription: "3min @ SUB-T[260-280W]",
+                  },
+                  {
+                    local_date: "2026-05-08",
+                    label: "Friday Tempo",
+                    prescription: "20min @ M[251-260W]",
+                  },
+                ],
+              },
+              {
+                planned: "LL",
+                start: "2026-05-11",
+                prescribed_runs: [
+                  {
+                    local_date: "2026-05-13",
+                    label: "Wednesday Intervals",
+                    prescription: "4min @ SUB-T[260-280W]",
+                  },
+                  {
+                    local_date: "2026-05-14",
+                    label: "Wednesday Intervals",
+                    prescription: "5min @ SUB-T[260-280W]",
+                  },
+                ],
+              },
             ],
           },
         ],
@@ -149,6 +239,144 @@ describe("associateRun", () => {
 
     expect(result).not.toBeNull();
     expect(result!.weekStart).toBe("2026-06-15");
+  });
+});
+
+describe("findPrescribedRun", () => {
+  it("matches one prescribed run by local date in the date-matched week", () => {
+    const plan = makePlanWithPrescribedRuns();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-06T12:00:00Z"),
+      "UTC",
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.match.matchKind).toBe("date");
+      expect(result.match.prescribedRun.label).toBe("Tuesday Intervals");
+      expect(result.match.prescribedRun.localDate).toBe("2026-05-06");
+      expect(result.match.weekContext.absoluteIndex).toBe(1);
+    }
+  });
+
+  it("returns no_week when run date is outside the plan and no override is supplied", () => {
+    const plan = makePlanWithPrescribedRuns();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-04-01T12:00:00Z"),
+      "UTC",
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no_week" });
+  });
+
+  it("returns no_prescribed_run when week matches but no prescribed run has the same local date", () => {
+    const plan = makePlanWithPrescribedRuns();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-07T12:00:00Z"),
+      "UTC",
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no_prescribed_run" });
+  });
+
+  it("returns ambiguous when multiple prescribed runs share the same local date in the matched week", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-06T12:00:00Z"),
+      "UTC",
+    );
+
+    expect(result).toEqual({ ok: false, reason: "ambiguous" });
+  });
+
+  it("matches by overrideDate across week boundaries", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-14T12:00:00Z"),
+      "UTC",
+      { overrideDate: "2026-05-08" },
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.match.matchKind).toBe("override");
+      expect(result.match.prescribedRun.label).toBe("Friday Tempo");
+      expect(result.match.weekContext.week.start).toBe("2026-05-04");
+    }
+  });
+
+  it("matches by overrideLabel across week boundaries", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-08T12:00:00Z"),
+      "UTC",
+      { overrideLabel: "Tuesday Intervals B" },
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.match.matchKind).toBe("override");
+      expect(result.match.prescribedRun.localDate).toBe("2026-05-06");
+      expect(result.match.weekContext.week.start).toBe("2026-05-04");
+    }
+  });
+
+  it("requires overrideDate and overrideLabel to match the same prescribed run", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-08T12:00:00Z"),
+      "UTC",
+      {
+        overrideDate: "2026-05-08",
+        overrideLabel: "Tuesday Intervals A",
+      },
+    );
+
+    expect(result).toEqual({ ok: false, reason: "no_prescribed_run" });
+  });
+
+  it("returns ambiguous when override matches multiple prescribed runs", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-08T12:00:00Z"),
+      "UTC",
+      { overrideLabel: "Wednesday Intervals" },
+    );
+
+    expect(result).toEqual({ ok: false, reason: "ambiguous" });
+  });
+
+  it("can match override even when run date falls outside every week", () => {
+    const plan = makePlanForAssociationCases();
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2027-01-01T12:00:00Z"),
+      "UTC",
+      { overrideDate: "2026-05-08" },
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.match.prescribedRun.label).toBe("Friday Tempo");
+      expect(result.match.matchKind).toBe("override");
+    }
   });
 });
 

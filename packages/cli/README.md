@@ -59,6 +59,9 @@ run2max quantify my-run.fit --timezone America/Santiago   # IANA tz override
 run2max quantify my-run.fit --downsample 10               # 1 record per 10s
 run2max quantify my-run.fit --exclude-anomalies           # null out bad values
 run2max quantify my-run.fit --config ./run2max.config.yaml
+run2max quantify my-run.fit --prescribed-run 2026-05-12
+run2max quantify my-run.fit --prescribed-run "Tuesday Intervals"
+run2max quantify my-run.fit --prescribed-run label:2026-05-12
 ```
 
 ## All flags
@@ -78,6 +81,7 @@ run2max quantify my-run.fit --config ./run2max.config.yaml
 | `--exclude-anomalies` | —     | `false` | Exclude anomalous values from aggregations                                                          |
 | `--no-weather`        | —     | `false` | Skip weather fetch for this run                                                                     |
 | `--plan`              | —     | —       | Path to `plan.yaml` or its directory (auto-discovered from the `.fit` file's directory when absent) |
+| `--prescribed-run`    | —     | —       | Override prescribed-run association: `YYYY-MM-DD`, `date:YYYY-MM-DD`, `label:<label>`, or label text |
 
 ## Plan commands
 

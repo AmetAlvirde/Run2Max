@@ -13,6 +13,7 @@ vi.mock("normalize-fit-file", () => ({
 
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import { quantify } from "./quantify.js";
+import { parsePlan } from "../plan/schema.js";
 
 const BASE_TIME = new Date("2026-04-12T08:00:00Z");
 function ms(seconds: number): Date {
@@ -61,6 +62,56 @@ function buildNormalizedData(recordCount: number) {
     ],
     records,
   };
+}
+
+function makePlanWithPrescribedRuns(options?: {
+  firstWeekDate?: string;
+  secondWeekDate?: string;
+}) {
+  const firstWeekDate = options?.firstWeekDate ?? "2026-04-12";
+  const secondWeekDate = options?.secondWeekDate ?? "2026-04-13";
+
+  return parsePlan({
+    schema_version: 1,
+    block: "build",
+    goal: "Half Marathon Santiago",
+    start: "2026-04-06",
+    mesocycles: [
+      {
+        name: "CANAL",
+        fractals: [
+          {
+            weeks: [
+              {
+                planned: "L",
+                start: "2026-04-06",
+                prescribed_runs: [
+                  {
+                    local_date: firstWeekDate,
+                    label: "Sunday Endurance",
+                    prescription: "30min @ E",
+                    comparison_group: "endurance",
+                  },
+                ],
+              },
+              {
+                planned: "LL",
+                start: "2026-04-13",
+                prescribed_runs: [
+                  {
+                    local_date: secondWeekDate,
+                    label: "Monday Tempo",
+                    prescription: "20min @ M[251-260W]",
+                    comparison_group: "tempo",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
 }
 
 const CONFIG: Run2MaxConfig = {
@@ -188,5 +239,62 @@ describe("quantify", () => {
     expect(result.segments).toEqual([]);
     expect(result.zoneDistribution).toEqual([]);
     expect(result.kmSplits.length).toBeGreaterThan(0); // km splits don't require zones
+  });
+
+  it("adds prescribedRunContext when a prescribed run matches by date", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.prescribedRunContext).toBeDefined();
+    expect(result.prescribedRunContext?.matchKind).toBe("date");
+    expect(result.prescribedRunContext?.label).toBe("Sunday Endurance");
+    expect(result.prescribedRunContext?.localDate).toBe("2026-04-12");
+    expect(result.prescribedRunContext?.weekNumber).toBe(1);
+  });
+
+  it("keeps prescribedRunContext undefined when no prescribed run matches", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns({ firstWeekDate: "2026-04-11" });
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.planContext).toBeDefined();
+    expect(result.planContext?.weekNumber).toBe(1);
+    expect(result.prescribedRunContext).toBeUndefined();
+  });
+
+  it("supports cross-week prescribed run override while preserving date-based planContext", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+      prescribedRunOverride: { overrideDate: "2026-04-13" },
+    });
+
+    expect(result.planContext).toBeDefined();
+    expect(result.planContext?.weekNumber).toBe(1);
+    expect(result.prescribedRunContext).toBeDefined();
+    expect(result.prescribedRunContext?.matchKind).toBe("override");
+    expect(result.prescribedRunContext?.label).toBe("Monday Tempo");
+    expect(result.prescribedRunContext?.weekNumber).toBe(2);
   });
 });
