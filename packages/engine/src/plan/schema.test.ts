@@ -237,4 +237,69 @@ describe("parsePlan", () => {
     expect(REASON_CATEGORIES).toContain("illness");
     expect(KNOWN_DISTANCES).toContain("marathon");
   });
+
+  it("parses prescribed_runs and expands prescription steps", () => {
+    const result = parsePlan({
+      ...minimalPlan,
+      mesocycles: [
+        {
+          name: "CANAL",
+          fractals: [
+            {
+              weeks: [
+                {
+                  planned: "L",
+                  start: "2026-05-04",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-05-06",
+                      label: "Sub-threshold intervals",
+                      prescription: "1.6K @ E[205-234W] -> 4(3min @ SUB-T[260-280W]/1min @ E)",
+                      comparison_group: "sub-t-3min",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const run = result.mesocycles[0]!.fractals[0]!.weeks[0]!.prescribedRuns?.[0];
+    expect(run?.localDate).toBe("2026-05-06");
+    expect(run?.comparisonGroup).toBe("sub-t-3min");
+    expect(run?.steps).toHaveLength(9);
+    expect(run?.steps[0]?.target).toEqual({ kind: "distance", value: 1.6, unit: "km" });
+  });
+
+  it("throws when a prescribed run has invalid notation", () => {
+    expect(() =>
+      parsePlan({
+        ...minimalPlan,
+        mesocycles: [
+          {
+            name: "CANAL",
+            fractals: [
+              {
+                weeks: [
+                  {
+                    planned: "L",
+                    start: "2026-05-04",
+                    prescribed_runs: [
+                      {
+                        local_date: "2026-05-06",
+                        label: "Broken run",
+                        prescription: "4(3min @ SUB-T[260-280W]/)",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/Invalid prescription notation/);
+  });
 });

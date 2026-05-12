@@ -28,14 +28,14 @@ this sub-issue is planned.
 
 ## Dependency classification
 
-| Dependency | Category | Testing strategy |
-| --- | --- | --- |
-| TypeScript compiler | In-process | Test directly through existing package test/build commands. |
-| `vitest` | In-process | New parser and Plan schema tests run in the existing engine suite. |
-| `valibot` Plan parser | In-process | Extend existing schema tests; do not introduce a second runtime validation library. |
-| `transformKeysSnakeToCamel` | In-process | Test through a snake_case `prescribed_runs` fixture parsed by `parsePlan`. |
+| Dependency                            | Category   | Testing strategy                                                                                                                          |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript compiler                   | In-process | Test directly through existing package test/build commands.                                                                               |
+| `vitest`                              | In-process | New parser and Plan schema tests run in the existing engine suite.                                                                        |
+| `valibot` Plan parser                 | In-process | Extend existing schema tests; do not introduce a second runtime validation library.                                                       |
+| `transformKeysSnakeToCamel`           | In-process | Test through a snake_case `prescribed_runs` fixture parsed by `parsePlan`.                                                                |
 | Named Plan interfaces from parent #32 | In-process | Extend `Week` with optional `prescribedRuns`; type drift is covered by existing type-level Plan tests plus new type assertions if needed. |
-| Plan walker from parent #35 | In-process | No direct implementation dependency in this sub-issue; downstream association work will use it to find Week-level Prescribed Runs. |
+| Plan walker from parent #35           | In-process | No direct implementation dependency in this sub-issue; downstream association work will use it to find Week-level Prescribed Runs.        |
 
 No remote, collaborator-owned, true external, or irreplaceable dependencies. No
 port is required because parsing and expansion are pure in-process data
@@ -139,8 +139,8 @@ if (firstRun) {
 
 **Alternative B -- Authored Plan shape only, parser called lazily by consumers**
 
-`parsePlan` accepts and returns only authored Prescribed Run metadata. Downstream
-parents call the parser when they need steps.
+`parsePlan` accepts and returns only authored Prescribed Run metadata.
+Downstream parents call the parser when they need steps.
 
 ```ts
 // packages/engine/src/plan/types.ts
@@ -178,13 +178,19 @@ return compareSegmentsToSteps(segments, parsed.steps);
 
 **Alternative C -- Rich AST plus expanded steps for strongest parser encounter**
 
-The parser returns both a syntax tree and flattened steps. The parsed Plan stores
-the rich result so future diagnostics and tooling can point to nested group
-structure.
+The parser returns both a syntax tree and flattened steps. The parsed Plan
+stores the rich result so future diagnostics and tooling can point to nested
+group structure.
 
 ```ts
 export type PrescriptionNode =
-  | { kind: "step"; source: string; target: PrescribedStepTarget; intensityLabel?: string; targetRange?: TargetRange }
+  | {
+      kind: "step";
+      source: string;
+      target: PrescribedStepTarget;
+      intensityLabel?: string;
+      targetRange?: TargetRange;
+    }
   | { kind: "sequence"; nodes: PrescriptionNode[] }
   | { kind: "repeat"; count: number; pattern: PrescriptionNode[] };
 
@@ -201,7 +207,9 @@ export interface PrescribedRun {
   parsedPrescription: ParsedPrescription;
 }
 
-export function parsePrescriptionNotation(input: string):
+export function parsePrescriptionNotation(
+  input: string,
+):
   | { ok: true; value: ParsedPrescription }
   | { ok: false; diagnostics: PrescriptionDiagnostic[] };
 ```
@@ -241,9 +249,9 @@ notation-specific helpers. Prescription domain interfaces live in
 `packages/engine/src/plan/types.ts` with `Week`, because Prescribed Runs are
 parsed Plan data rather than a derived comparison result.
 
-Rejected: putting the parser under `computations/`. One sentence:
-Prescription Notation belongs to Plan authoring, while `computations/` operates
-on captured Run data.
+Rejected: putting the parser under `computations/`. One sentence: Prescription
+Notation belongs to Plan authoring, while `computations/` operates on captured
+Run data.
 
 ### Public interface
 
@@ -289,7 +297,8 @@ Input YAML shape after snake-to-camel normalization:
 prescribed_runs:
   - local_date: "2026-05-12"
     label: Sub-threshold intervals
-    prescription: "1.6K @ E[205-234W] -> 4(3min @ SUB-T[260-280W]/1min @ E) -> 1.6K @ E"
+    prescription:
+      "1.6K @ E[205-234W] -> 4(3min @ SUB-T[260-280W]/1min @ E) -> 1.6K @ E"
     comparison_group: sub-t-3min
 ```
 
@@ -301,8 +310,8 @@ Invariants:
   parsed from the Plan after YAML decoding.
 - `PrescribedRun.steps` is ordered by `index`, starting at 1, and includes every
   expanded step from warmup through cooldown.
-- Repetition expansion preserves authored order. `4(A/B)` yields `A, B, A, B,
-  A, B, A, B` after any surrounding sequence steps.
+- Repetition expansion preserves authored order. `4(A/B)` yields
+  `A, B, A, B, A, B, A, B` after any surrounding sequence steps.
 - `TargetRange` v1 supports power ranges in watts only. Do not infer ranges from
   Zone labels.
 - `parsePrescriptionNotation(input)` accepts both `->` and `→` as separators;
@@ -333,8 +342,8 @@ Error modes:
   `comparisonGroup`, and expanded `steps`.
 - `parsePrescriptionNotation` parses simple distance steps, simple duration
   steps, ordered `->` sequences, ordered `→` sequences, repetition groups,
-  repeated work/recovery pairs separated by `/`, intensity labels after `@`,
-  and inline power Target Ranges.
+  repeated work/recovery pairs separated by `/`, intensity labels after `@`, and
+  inline power Target Ranges.
 - Repetition expansion produces stable 1-based step indexes and preserves order.
 - Invalid notation returns actionable diagnostics from the standalone parser and
   fails Plan parsing when the invalid notation is inside `prescribed_runs`.
@@ -346,7 +355,8 @@ Error modes:
 - No Run association, FIT lap comparison, output formatting, history lookup,
   database/cache, or zone-history lookup is introduced.
 - Repository-runnable verification commands pass at closure, including
-  `pnpm test` and any package build/DTS checks already defined in the repository.
+  `pnpm test` and any package build/DTS checks already defined in the
+  repository.
 
 ## Proposed tests
 
@@ -365,9 +375,10 @@ Error modes:
    and asserts `prescribedRuns[0].steps` is populated.
 3. **Existing Plan compatibility tests** -- existing fixtures without
    `prescribed_runs` continue to parse and validate unchanged.
-4. **Type-level drift guard** -- extend `packages/engine/src/plan/types.test-d.ts`
-   if needed so the named `Week` interface and `WeekSchema` output remain
-   assignable after `prescribedRuns` is added.
+4. **Type-level drift guard** -- extend
+   `packages/engine/src/plan/types.test-d.ts` if needed so the named `Week`
+   interface and `WeekSchema` output remain assignable after `prescribedRuns` is
+   added.
 5. **Public export smoke test** -- existing package export/type tests, or a new
    minimal import test if no export test exists, verify consumers can import the
    new types and `parsePrescriptionNotation` from `@run2max/engine`.
@@ -400,5 +411,5 @@ Error modes:
 - Parent #53 flags apply: accept both arrow spellings, do not infer Target
   Ranges from Zone labels, do not add reusable prescription templates, and do
   not add automatic interval detection.
-- If parser grammar decisions expand beyond the v1 constructs listed here,
-  pause and consider an ADR before implementing the wider grammar.
+- If parser grammar decisions expand beyond the v1 constructs listed here, pause
+  and consider an ADR before implementing the wider grammar.
