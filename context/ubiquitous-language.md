@@ -16,6 +16,10 @@
 | **Mesocycle** | A named sequence of Fractals inside a Plan expressing a single training intent (build, taper, race, etc.). | phase, segment |
 | **Fractal** | An ordered sequence of Weeks inside a Mesocycle representing one repetition of its pattern. | microcycle group, repeat |
 | **Week** | The smallest macro unit, with a `planned` Week Type, an optional `executed` Week Type, and an optional `reason` and `note`. | microcycle |
+| **Prescribed Run** | A Block-specific planned running unit on a Week that describes what the runner intended to do on a given day before any FIT File exists. | workout, session |
+| **Prescription Notation** | A compact text expression that specifies the ordered Prescribed Steps of a Prescribed Run. | workout string, interval notation |
+| **Comparison Group** | A runner-assigned identifier that marks Prescribed Runs as meaningfully comparable across a Block. | similar workout, workout family |
+| **Prescribed Step** | A lap-aligned planned subdivision of a Prescribed Run, such as warmup, rep, recovery, or cooldown. | interval, split |
 | **Week Type** | A one- or two-letter code denoting the intended or actual character of a Week (`L`, `LL`, `LLL`, `D`, `Ta`, `Tb`, `P`, `R`, `N`, plus executed-only `INC`, `DNF`). | week tag, label |
 | **Testing Period** | A test Week's measured outputs (`cp`, `eFtp`, `lthr`, `zones`) recorded on the Week itself. | test result, fitness test |
 | **Reason** | One of a constrained set of explanations attached to a Week when execution diverges from plan (`illness`, `injury`, `travel`, `personal`, `weather`, `schedule`). | excuse, deviation cause |
@@ -38,6 +42,8 @@
 | **eFTP** | An estimated functional threshold power entered manually from external interval analysis. | estimated FTP |
 | **LTHR** | The runner's lactate-threshold heart rate in bpm. | threshold HR |
 | **Zone** | A labeled intensity band defined by a `min`/`max` pair over power, heart rate, or pace. | intensity bucket, training band |
+| **Target Range** | The explicit numeric range on a Prescribed Step used as the authoritative comparison target. | zone snapshot, inline zone |
+| **RPE** | The runner's post-Run rating of perceived exertion recorded as run-level metadata. | effort score |
 | **Normalized Power (NP)** | Coggan-style smoothed-and-weighted average power over a Run. | weighted power |
 | **Intensity Factor (IF)** | The ratio `NP / CP` for a Run; null when CP is not set. | relative intensity |
 | **Run Stress Score (RSS)** | This project's name for Coggan TSS computed from a Run's NP, IF, and duration. | TSS, training stress |
@@ -48,6 +54,8 @@
 | --- | --- | --- |
 | **Quantify** | The pipeline that turns one FIT File into an AnalysisResult, optionally enriched with Plan Context. | analyze, compute |
 | **AnalysisResult** | The full structured output for one Run: summary, segments, km splits, zone distributions, dynamics, elevation, weather, anomalies, capabilities, optional plan context. | report, output |
+| **Analysis Artifact** | A saved YAML or JSON representation of an AnalysisResult produced by Run2Max. | exported report, saved output |
+| **Output Profile** | The selection of AnalysisResult sections and columns included when formatting an Analysis Artifact. | report profile |
 | **Segment** | A lap-indexed slice of a Run derived from FIT lap markers. | lap, interval |
 | **Km Split** | A 1-kilometer slice of a Run derived independently of lap markers. | kilometer, split |
 | **Anomaly** | A flagged data quality issue on a Run (`zero_value`, `spike`, or `missing`) optionally excluded from aggregations. | data error, glitch |
@@ -62,9 +70,16 @@
 - A **Mesocycle** contains one or more **Fractals** in order.
 - A **Fractal** contains one or more **Weeks** in order.
 - A **Week** has exactly one planned **Week Type** and at most one executed **Week Type**.
+- A **Week** may contain zero or more **Prescribed Runs**.
+- A **Prescribed Run** may be authored from **Prescription Notation**.
+- A **Prescribed Run** may belong to one **Comparison Group**.
+- A **Prescribed Run** contains one or more **Prescribed Steps** when interval comparison is expected.
 - A **Run** is associated with at most one **Week** (date-based, file-numbering, or `--plan` override).
+- A **Run** is associated with at most one **Prescribed Run** for comparison, normally by local date with an explicit override for moved or ambiguous Runs.
 - A **Run** produces exactly one **AnalysisResult** per **Quantify** invocation.
+- An **Analysis Artifact** is produced from exactly one **AnalysisResult** using one **Output Profile**.
 - A **Zone** belongs to exactly one **Testing Period**, which belongs to exactly one **Week**.
+- A **Prescribed Step** may declare a **Target Range** when numeric comparison is expected.
 - **CP** is only updated by a **Testing Period** whose Week's executed type was `Ta`.
 
 ## Example dialogue
@@ -84,6 +99,29 @@
 > **Dev:** "Where do Mesocycles live — on the Block or the Plan?"
 > **Domain expert:** "On the Plan. The Block is the training cycle as a whole; the Plan is the spec the runner is following. The Block folder bundles the Plan with the Runs and any supporting files."
 
+> **Dev:** "Is Tuesday's workout a Run?"
+> **Domain expert:** "No. Before the file exists it is a Prescribed Run on the Week; after capture it is a Run that may be compared against that prescription."
+
+> **Dev:** "Do we compare only the four hard reps in `4x5min`, or the whole lap sequence?"
+> **Domain expert:** "The Prescribed Run contains every Prescribed Step, but conclusions may focus on the work reps."
+
+> **Dev:** "Should I hand-enter every Prescribed Step if I already have `1.6K @ E → 4(3min@SUB-T/1min@E) → 1.6K @ E`?"
+> **Domain expert:** "No. That is Prescription Notation; Run2Max should parse it into Prescribed Steps for comparison."
+
+> **Dev:** "If `E` changes after a `Ta`, how do we know which watts applied to the earlier Prescribed Run?"
+> **Domain expert:** "Use the Prescribed Step's Target Range, such as `E[205-234W]`, as the historical comparison target."
+
+> **Dev:** "What if I do Tuesday's Prescribed Run on Wednesday?"
+> **Domain expert:** "The default association is by local date, but the runner can explicitly override the Prescribed Run for comparison."
+
+> **Dev:** "Can Run2Max assume two identical prescriptions are worth comparing?"
+> **Domain expert:** "No. Prescribed Runs are compared across the Block only when they share a Comparison Group."
+
+> **Dev:** "Can historical deltas use any old saved output file?"
+> **Domain expert:** "No. They use a detailed Analysis Artifact with the sections and columns required for comparison."
+
 ## Flagged ambiguities
 
 - "Plan" was used throughout code, the `plan.yaml` schema, and cycle 01 PRD without a glossary definition, while **Block** was defined as the folder containing both the plan and its `.fit` files — resolved: **Plan** added as a distinct term (the spec); **Block** remains the training cycle that the Plan specifies. Mesocycle ownership moved from Block to Plan in the relationships section.
+- "Workout" is used by the CLI and FIT-derived summary metadata, but the next Plan-adherence cycle needs a pre-capture planned unit — resolved: use **Prescribed Run** for the planned unit and keep **Run** for the captured FIT File.
+- Zone labels in Prescription Notation were ambiguous after CP changes — resolved for the next feature cycle: use explicit **Target Range** values on comparable Prescribed Steps rather than relying on mutable config history.
