@@ -5,6 +5,33 @@ export interface TestingPeriod {
   zones?: Record<string, { min: number; max: number }>;
 }
 
+export interface TargetRange {
+  metric: "power";
+  min: number;
+  max: number;
+  unit: "W";
+}
+
+export type PrescribedStepTarget =
+  | { kind: "distance"; value: number; unit: "km" }
+  | { kind: "duration"; value: number; unit: "seconds" };
+
+export interface PrescribedStep {
+  index: number;
+  target: PrescribedStepTarget;
+  intensityLabel?: string;
+  targetRange?: TargetRange;
+  source: string;
+}
+
+export interface PrescribedRun {
+  localDate: string;
+  label: string;
+  prescription: string;
+  comparisonGroup?: string;
+  steps: PrescribedStep[];
+}
+
 export interface Week {
   planned: string;
   start: string;
@@ -12,6 +39,7 @@ export interface Week {
   reason?: string;
   note?: string;
   testingPeriod?: TestingPeriod;
+  prescribedRuns?: PrescribedRun[];
 }
 
 export interface Fractal {

@@ -6,10 +6,18 @@ export const ENGINE_VERSION = "2.0.0";
 
 export type { MicrocycleConfig } from "./config/schema.js";
 export { REASON_CATEGORIES } from "./plan/schema.js";
-export type { Plan, TestingPeriod } from "./plan/types.js";
+export type {
+  Plan,
+  TestingPeriod,
+  PrescribedRun,
+  PrescribedStep,
+  PrescribedStepTarget,
+  TargetRange,
+} from "./plan/types.js";
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan } from "./plan/loader.js";
+export { parsePrescriptionNotation } from "./plan/prescription.js";
 export { resolvePlanTemplate, listPlanTemplates } from "./plan/templates/lookup.js";
 export { buildPlanFromTemplate } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
