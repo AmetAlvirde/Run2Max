@@ -31,6 +31,44 @@ function toArrayBuffer(buffer: Buffer): ArrayBuffer {
   ) as ArrayBuffer;
 }
 
+const LOCAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function parsePrescribedRunOverride(selector: string | undefined):
+  | { overrideDate: string }
+  | { overrideLabel: string }
+  | undefined {
+  if (selector === undefined) return undefined;
+
+  const value = selector.trim();
+  if (value.length === 0) {
+    throw new Error("--prescribed-run cannot be blank");
+  }
+
+  if (value.startsWith("date:")) {
+    const dateValue = value.slice("date:".length).trim();
+    if (!LOCAL_DATE_RE.test(dateValue)) {
+      throw new Error("--prescribed-run date: must use YYYY-MM-DD");
+    }
+    return { overrideDate: dateValue };
+  }
+
+  if (value.startsWith("label:")) {
+    const labelValue = value.slice("label:".length).trim();
+    if (labelValue.length === 0) {
+      throw new Error("--prescribed-run label: must include a label");
+    }
+    return { overrideLabel: labelValue };
+  }
+
+  if (LOCAL_DATE_RE.test(value)) {
+    return { overrideDate: value };
+  }
+
+  return {
+    overrideLabel: value,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Command
 // ---------------------------------------------------------------------------
@@ -110,6 +148,11 @@ export default defineCommand({
       type: "string",
       description:
         "Path to plan.yaml or directory containing plan.yaml. Auto-discovered from the .fit file's directory when absent.",
+    },
+    "prescribed-run": {
+      type: "string",
+      description:
+        "Prescribed Run override: YYYY-MM-DD, date:YYYY-MM-DD, label:<label>, or label text",
     },
   },
 
@@ -200,6 +243,15 @@ export default defineCommand({
 
     // ---- Resolve timezone
     const timezone = args.timezone ?? config?.athlete?.timezone;
+    let prescribedRunOverride:
+      | { overrideDate: string }
+      | { overrideLabel: string }
+      | undefined;
+    try {
+      prescribedRunOverride = parsePrescribedRunOverride(args["prescribed-run"]);
+    } catch (err) {
+      fatal((err as Error).message);
+    }
 
     // ---- Discover and load plan.yaml (silent when absent)
     const fitDir = resolve(dirname(args.file));
@@ -218,6 +270,15 @@ export default defineCommand({
         plan = await loadPlan(planPath!);
       } catch (err) {
         fatal(`Could not load plan: ${(err as Error).message}`);
+      }
+    } else if (prescribedRunOverride) {
+      const cwdPlanPath = join(process.cwd(), "plan.yaml");
+      try {
+        plan = await loadPlan(cwdPlanPath);
+      } catch {
+        fatal(
+          "No plan.yaml found in the current working directory. --prescribed-run requires a Plan; pass --plan <path> to use a Plan in another location.",
+        );
       }
     } else {
       // Auto-discover plan.yaml in the same directory as the .fit file
@@ -243,6 +304,7 @@ export default defineCommand({
         excludeAnomalies: args["exclude-anomalies"],
         noWeather: args["no-weather"],
         plan,
+        ...(prescribedRunOverride ? { prescribedRunOverride } : {}),
         fitDirPath: fitDir,
       });
     } catch (err) {

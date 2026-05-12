@@ -40,9 +40,11 @@
   points at a Prescribed Run in a different Week from the captured Run's date,
   the Prescribed Run association reports the intended Prescribed Run's owning
   Week separately rather than silently redefining Plan Context.
-- The quantify access-surface override is not yet resolved. Follow-up sub-issue
-  #58 must confirm the exact CLI flag name and value shape before
-  implementation, then update this issue and the cycle PRD when approved.
+- The quantify access-surface override is resolved in sub-issue #58:
+  `--prescribed-run <selector>` where bare `YYYY-MM-DD` and
+  `date:YYYY-MM-DD` map to override date, while bare text and `label:<label>`
+  map to override label. Without `--plan`, override mode first tries
+  `./plan.yaml` and fails clearly if no cwd Plan exists.
 - Structured tests cover: default date match; no Prescribed Run on the Run date;
   duplicate Prescribed Runs on the date returning `ambiguous`; override by date;
   override by label; override with both date and label; override across a Week
@@ -98,13 +100,12 @@ override input. Because access-surface approval blocked CLI wiring, sub-issue
 
 ## Flags
 
-- The cycle PRD's MUST RESOLVE question remains open until approved: "What exact
-  CLI flag name and value shape should override the Prescribed Run association
-  during `quantify`?" Sub-issue #58 plans a single
-  `--prescribed-run <selector>` flag where bare `YYYY-MM-DD` and
-  `date:YYYY-MM-DD` map to an override date, while bare text and `label:<label>`
-  map to an override label. The `label:` prefix is the escape hatch for
-  date-shaped labels such as `2026-05-12`.
+- Resolved by sub-issue #58: `quantify` uses
+  `--prescribed-run <selector>`. Bare `YYYY-MM-DD` and `date:YYYY-MM-DD` map to
+  override date; bare text and `label:<label>` map to override label. The
+  `label:` prefix is the escape hatch for date-shaped labels such as
+  `2026-05-12`. When override is supplied without `--plan`, CLI tries cwd
+  `plan.yaml` and fails clearly if absent.
 - No lazy reparse: association uses `PrescribedRun.steps`; it does not inspect
   parser internals or reparse `PrescribedRun.prescription`.
 - Do not add lap comparison logic here. The match result provides the Prescribed
@@ -114,7 +115,11 @@ override input. Because access-surface approval blocked CLI wiring, sub-issue
   alone.
 - Do not add history lookup or artifact comparison here. The Comparison Group is
   carried forward for downstream history work.
-- [ ] [58-cli-prescribed-run-override](58-cli-prescribed-run-override/sub-issue.md)
+- [x] [58-cli-prescribed-run-override](58-cli-prescribed-run-override/sub-issue.md)
+
+  Closed: implemented CLI selector parsing/validation, cwd `plan.yaml` fallback
+  for override mode, no-Plan failure messaging, and `QuantifyOptions`
+  pass-through mapping.
 
   Resolve and implement the quantify CLI override flag name/value shape, then
   map it to `QuantifyOptions.prescribedRunOverride`.

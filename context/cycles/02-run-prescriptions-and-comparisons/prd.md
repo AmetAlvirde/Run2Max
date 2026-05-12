@@ -166,8 +166,10 @@ prior Runs in the same Comparison Group.
 
 ## Open questions
 
-- MUST RESOLVE: What exact CLI flag name and value shape should override the
-  Prescribed Run association during `quantify`?
+- Resolved during parent #56: `quantify` override uses
+  `--prescribed-run <selector>`. Bare `YYYY-MM-DD` and `date:YYYY-MM-DD` select
+  by Prescribed Run local date; bare text and `label:<label>` select by label.
+  `label:` is the escape hatch for date-shaped labels.
 - MUST RESOLVE: What detailed-profile marker or validation rule proves a saved
   YAML/JSON artifact is detailed enough for history comparison?
 - RESOLVE THROUGH IMPLEMENTATION: Exact structured output shape for the
