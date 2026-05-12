@@ -33,7 +33,13 @@ export { walkPlan } from "./plan/walk.js";
 // Runs and capture
 // ---------------------------------------------------------------------------
 
-export { scanBlockRuns } from "./plan/associate.js";
+export { scanBlockRuns, findPrescribedRun } from "./plan/associate.js";
+export type {
+  FindPrescribedRunOptions,
+  FindPrescribedRunReason,
+  FindPrescribedRunResult,
+  PrescribedRunMatch,
+} from "./plan/associate.js";
 
 // ---------------------------------------------------------------------------
 // Metrics and zones

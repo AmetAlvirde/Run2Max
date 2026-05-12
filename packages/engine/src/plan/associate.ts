@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import type { Plan } from "./types.js";
 import { addDays } from "./dates.js";
-import { walkPlan } from "./walk.js";
+import { walkPlan, type WeekContext } from "./walk.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +25,26 @@ export interface BlockRun {
   displayName: string;
   date: Date;
 }
+
+export interface FindPrescribedRunOptions {
+  overrideDate?: string;
+  overrideLabel?: string;
+}
+
+export type FindPrescribedRunReason =
+  | "no_week"
+  | "no_prescribed_run"
+  | "ambiguous";
+
+export interface PrescribedRunMatch {
+  prescribedRun: NonNullable<WeekContext["week"]["prescribedRuns"]>[number];
+  weekContext: WeekContext;
+  matchKind: "date" | "override";
+}
+
+export type FindPrescribedRunResult =
+  | { ok: true; match: PrescribedRunMatch }
+  | { ok: false; reason: FindPrescribedRunReason };
 
 /**
  * Converts a UTC Date to a local ISO date string (YYYY-MM-DD) in the given
@@ -96,6 +116,73 @@ export function associateRun(
   }
 
   return null;
+}
+
+export function findPrescribedRun(
+  plan: Plan,
+  runDate: Date,
+  timezone: string,
+  options?: FindPrescribedRunOptions,
+): FindPrescribedRunResult {
+  const localDate = toLocalDate(runDate, timezone);
+  const flatWeeks = walkPlan(plan);
+
+  const hasOverride = Boolean(options?.overrideDate || options?.overrideLabel);
+
+  if (hasOverride) {
+    const matches: PrescribedRunMatch[] = [];
+
+    for (const weekContext of flatWeeks) {
+      const runs = weekContext.week.prescribedRuns ?? [];
+      for (const prescribedRun of runs) {
+        if (options?.overrideDate && prescribedRun.localDate !== options.overrideDate) {
+          continue;
+        }
+        if (options?.overrideLabel && prescribedRun.label !== options.overrideLabel) {
+          continue;
+        }
+        matches.push({ prescribedRun, weekContext, matchKind: "override" });
+      }
+    }
+
+    if (matches.length === 1) {
+      return { ok: true, match: matches[0]! };
+    }
+    if (matches.length > 1) {
+      return { ok: false, reason: "ambiguous" };
+    }
+    return { ok: false, reason: "no_prescribed_run" };
+  }
+
+  const weekContext = flatWeeks.find((ctx) => {
+    const weekEnd = addDays(ctx.week.start, 7);
+    return localDate >= ctx.week.start && localDate < weekEnd;
+  });
+
+  if (!weekContext) {
+    return { ok: false, reason: "no_week" };
+  }
+
+  const matches = (weekContext.week.prescribedRuns ?? []).filter(
+    (run) => run.localDate === localDate,
+  );
+
+  if (matches.length === 1) {
+    return {
+      ok: true,
+      match: {
+        prescribedRun: matches[0]!,
+        weekContext,
+        matchKind: "date",
+      },
+    };
+  }
+
+  if (matches.length > 1) {
+    return { ok: false, reason: "ambiguous" };
+  }
+
+  return { ok: false, reason: "no_prescribed_run" };
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import {
 import type {
   AnalysisResult,
   PlanContext,
+  PrescribedRunContext,
   QuantifyOptions,
   Run2MaxRecord,
   WeatherSummary,
@@ -14,7 +15,7 @@ import type {
   KmSplitRow,
 } from "../types.js";
 import { ENGINE_VERSION } from "../index.js";
-import { associateRun, scanBlockRuns } from "../plan/associate.js";
+import { associateRun, findPrescribedRun, scanBlockRuns } from "../plan/associate.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
@@ -140,8 +141,34 @@ export async function quantify(
 
   // 9. Plan context (optional — only when options.plan is provided)
   let planContext: PlanContext | undefined;
+  let prescribedRunContext: PrescribedRunContext | undefined;
   if (options.plan) {
     const timezone = options.timezone ?? config?.athlete?.timezone ?? "UTC";
+    const prescribedAssoc = findPrescribedRun(
+      options.plan,
+      summary.date,
+      timezone,
+      options.prescribedRunOverride,
+    );
+
+    if (prescribedAssoc.ok) {
+      const { prescribedRun, weekContext, matchKind } = prescribedAssoc.match;
+      prescribedRunContext = {
+        label: prescribedRun.label,
+        localDate: prescribedRun.localDate,
+        comparisonGroup: prescribedRun.comparisonGroup,
+        steps: prescribedRun.steps,
+        matchKind,
+        weekNumber: weekContext.absoluteIndex,
+        totalWeeks: weekContext.totalWeeks,
+        weekType: weekContext.week.planned,
+        mesocycle: weekContext.mesocycleName,
+        fractalIndex: weekContext.fractalIndex + 1,
+        totalFractals: weekContext.totalFractals,
+        weekStart: weekContext.week.start,
+      };
+    }
+
     const weekAssoc = associateRun(options.plan, summary.date, timezone);
 
     if (weekAssoc) {
@@ -212,5 +239,6 @@ export async function quantify(
     anomalies,
     capabilities,
     planContext,
+    prescribedRunContext,
   };
 }

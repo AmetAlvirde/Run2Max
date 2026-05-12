@@ -116,3 +116,15 @@ defer CLI wiring to a sibling sub-issue.
   alone.
 - Do not add history lookup or artifact comparison here. The Comparison Group is
   carried forward for downstream history work.
+- [ ] [57-engine-association-and-override -> sibling sub-issue TBD]
+
+  Sub-issue #57 closed the pure engine association and quantify-side structured
+  override input, but intentionally did not implement CLI access-surface wiring.
+  Create a sibling sub-issue to resolve and implement the quantify override flag
+  name/value shape, then map it to `QuantifyOptions.prescribedRunOverride`.
+
+  Files to review:
+  - context/cycles/02-run-prescriptions-and-comparisons/issues/56-run-prescription-association/57-engine-association-and-override/sub-issue.md
+  - context/cycles/02-run-prescriptions-and-comparisons/issues/56-run-prescription-association/57-engine-association-and-override/aar.md
+
+  (See source AAR for full context)

@@ -1,6 +1,6 @@
 import type { RecordData } from "normalize-fit-file";
 import type { Run2MaxConfig } from "./config/schema.js";
-import type { Plan } from "./plan/types.js";
+import type { Plan, PrescribedStep } from "./plan/types.js";
 export type { Run2MaxConfig, ZoneConfig, OutputProfileConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +63,11 @@ export interface QuantifyOptions {
   noWeather?: boolean;  // CLI --no-weather flag; overrides config.weather
   /** Parsed plan.yaml for periodization context enrichment. */
   plan?: Plan;
+  /** Structured override for Prescribed Run association. */
+  prescribedRunOverride?: {
+    overrideDate?: string;
+    overrideLabel?: string;
+  };
   /**
    * Directory containing .fit files for this training block.
    * Used to count completed runs in the current week.
@@ -238,6 +243,8 @@ export interface AnalysisResult {
   capabilities: DataCapabilities;
   /** Periodization context from plan.yaml. Undefined when no plan is present. */
   planContext?: PlanContext;
+  /** Matched Prescribed Run context when association succeeds. */
+  prescribedRunContext?: PrescribedRunContext;
 }
 
 // ---------------------------------------------------------------------------
@@ -258,6 +265,21 @@ export interface PlanContext {
     expected: number;
     runs: string[];
   };
+}
+
+export interface PrescribedRunContext {
+  label: string;
+  localDate: string;
+  comparisonGroup?: string;
+  steps: PrescribedStep[];
+  matchKind: "date" | "override";
+  weekNumber: number;
+  totalWeeks: number;
+  weekType: string;
+  mesocycle: string;
+  fractalIndex: number;
+  totalFractals: number;
+  weekStart: string;
 }
 
 // ---------------------------------------------------------------------------
