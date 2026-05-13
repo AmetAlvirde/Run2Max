@@ -4,6 +4,7 @@ import {
   addDays,
   parsePrescriptionNotation,
   comparePrescriptionToSegments,
+  computeComparableHistoryDelta,
 } from "./index.js";
 
 describe("engine", () => {
@@ -22,5 +23,9 @@ describe("engine", () => {
 
   it("exports comparePrescriptionToSegments under analysis output", () => {
     expect(typeof comparePrescriptionToSegments).toBe("function");
+  });
+
+  it("exports computeComparableHistoryDelta under analysis output", () => {
+    expect(typeof computeComparableHistoryDelta).toBe("function");
   });
 });

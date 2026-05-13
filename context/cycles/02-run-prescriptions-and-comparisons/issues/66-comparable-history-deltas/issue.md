@@ -164,7 +164,7 @@ integration plus formatter work depends on the reader being closed first.
   later delta computation. No `quantify` integration, no formatter changes, no
   delta computation in this sub-issue.
 
-- [ ] [68-comparable-history-delta-computation](68-comparable-history-delta-computation/sub-issue.md)
+- [x] [68-comparable-history-delta-computation](68-comparable-history-delta-computation/sub-issue.md)
 
   Implement the pure Comparable-History Delta computation: consume current
   Prescription Comparison actuals and one eligible prior history artifact,
