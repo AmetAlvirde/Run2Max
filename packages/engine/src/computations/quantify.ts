@@ -16,11 +16,13 @@ import type {
 } from "../types.js";
 import { ENGINE_VERSION } from "../index.js";
 import { associateRun, findPrescribedRun, scanBlockRuns } from "../plan/associate.js";
+import { readHistoryArtifacts } from "../plan/history.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
 import { computeSegments } from "./segments.js";
 import { comparePrescriptionToSegments } from "./prescription-comparison.js";
+import { computeComparableHistoryDelta } from "./comparable-history.js";
 import { computeKmSplits } from "./km-splits.js";
 import {
   computePowerZoneDistribution,
@@ -173,6 +175,47 @@ export async function quantify(
         finalSegments,
         summary,
       );
+
+      if (
+        prescriptionComparison.status === "available"
+        && prescribedRunContext.comparisonGroup
+        && options.fitDirPath
+        && options.currentFitBasename
+      ) {
+        const historyReport = await readHistoryArtifacts({
+          blockDirPath: options.fitDirPath,
+          currentFitBasename: options.currentFitBasename,
+          comparisonGroup: prescribedRunContext.comparisonGroup,
+        });
+
+        const eligiblePriors = historyReport.candidates.filter(
+          (candidate) => candidate.status === "eligible",
+        );
+
+        if (eligiblePriors.length > 0) {
+          const currentActual = prescriptionComparison.actual;
+          prescriptionComparison = {
+            ...prescriptionComparison,
+            comparableHistory: {
+              status: "available",
+              runs: eligiblePriors.map((prior) =>
+                computeComparableHistoryDelta(currentActual, prior)
+              ),
+            },
+          };
+        } else if (historyReport.topLevelReason) {
+          prescriptionComparison = {
+            ...prescriptionComparison,
+            comparableHistory: {
+              status: "unavailable",
+              reason: historyReport.topLevelReason,
+              candidates: historyReport.candidates.filter(
+                (candidate) => candidate.status === "unavailable",
+              ),
+            },
+          };
+        }
+      }
     }
 
     const weekAssoc = associateRun(options.plan, summary.date, timezone);

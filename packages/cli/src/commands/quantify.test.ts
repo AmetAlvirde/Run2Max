@@ -173,4 +173,21 @@ describe("quantify command prescribed-run override", () => {
       "prescribedRunOverride",
     );
   });
+
+  it("passes currentFitBasename derived from input file path", async () => {
+    await command.run?.({
+      args: {
+        file: "/tmp/subdir/run-2026-04-12.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+      },
+    });
+
+    expect(mockQuantify).toHaveBeenCalledTimes(1);
+    expect(mockQuantify.mock.calls[0]?.[1]).toMatchObject({
+      fitDirPath: "/tmp/subdir",
+      currentFitBasename: "run-2026-04-12",
+    });
+  });
 });

@@ -3,12 +3,12 @@
 > High-level PRD for the next user-facing feature cycle. Sub-PRDs and parent
 > issues will live in this cycle's folder alongside this document.
 >
-> Status: draft.
+> Status: open. Cycle AAR and decision are pending.
 
 ## Focus
 
 Make the Plan concrete enough to compare a captured Run against the
-Block-specific Prescribed Run the athlete intended to execute, including
+Block-specific Prescribed Run the runner intended to execute, including
 lap-aligned Prescribed Steps, inline Target Ranges, and factual deltas against
 prior Runs in the same Comparison Group.
 
@@ -18,7 +18,7 @@ prior Runs in the same Comparison Group.
   without becoming a coaching inference engine.
 - Keep the Plan as the runner-owned source of truth while preserving existing
   Plans as valid inputs.
-- Let the athlete keep authoring compact Prescription Notation instead of
+- Let the runner keep authoring compact Prescription Notation instead of
   maintaining verbose expanded step lists by hand.
 - Prefer reproducible comparison targets over mutable zone lookups when a
   Prescribed Step needs numeric evaluation.
@@ -47,11 +47,11 @@ prior Runs in the same Comparison Group.
 - The single-Run comparison reports deterministic evidence: completion against
   prescribed duration/distance, avg power against Target Range, avg/max heart
   rate, avg pace, and run-level RPE when present.
-- Comparable-history deltas use prior detailed YAML/JSON AnalysisResult
-  artifacts with the same basename as their FIT File and the same Comparison
+- Comparable-history deltas use prior detailed YAML/JSON Analysis Artifacts
+  with the same basename as their FIT File and the same Comparison
   Group.
-- YAML and JSON history artifacts are treated as equivalent after key-case
-  normalization, but only detailed-profile artifacts with required sections and
+- YAML and JSON Analysis Artifacts are treated as equivalent after key-case
+  normalization, but only Detailed Profile artifacts with required sections and
   columns are eligible for comparison.
 - Markdown, JSON, and YAML outputs expose the prescription comparison without
   making rendered prose the only testable surface.
@@ -68,8 +68,9 @@ prior Runs in the same Comparison Group.
 - No coaching-style conclusions such as fitness diagnosis, readiness judgment,
   or training advice. The engine emits evidence and deltas.
 - No new persistence database or cache. History comparison reads saved detailed
-  YAML/JSON artifacts.
-- No arbitrary partial-output history. A prior artifact must contain the data
+  YAML/JSON Analysis Artifacts.
+- No arbitrary partial-output history. A prior Analysis Artifact must contain
+  the data
   required for the requested comparison.
 - No dedicated workout-builder UI or full plan-authoring workflow.
 - No weather-, elevation-, cadence-, Running Dynamics-, or Stryd-specific
@@ -80,7 +81,8 @@ prior Runs in the same Comparison Group.
 - As a runner quantifying a FIT File from a planned interval day, I see whether
   the captured lap sequence matched the Prescribed Run, so I can review the Run
   against what I intended to execute.
-- As a runner comparing week 1 and week 4 versions of the same interval session,
+- As a runner comparing week 1 and week 4 versions of the same interval
+  Prescribed Run,
   I see factual deltas for power, heart rate, pace, and RPE, so I can judge
   whether the later Run was controlled better at similar work.
 - As a runner authoring a Plan, I write compact Prescription Notation such as
@@ -103,7 +105,7 @@ prior Runs in the same Comparison Group.
 - A runner running `run2max quantify path/to/run.fit --plan . --format yaml`
   first encounters normal AnalysisResult sections plus a structured
   prescription-comparison section when a matching Prescribed Run exists.
-- A runner reviewing a repeated interval session first sees current-vs-prior
+- A runner reviewing a repeated interval Prescribed Run first sees current-vs-prior
   deltas only for Runs sharing an explicit Comparison Group.
 - A maintainer opening the comparison code first sees FIT laps treated as the
   actual boundary source, not a hidden interval-detection heuristic.
@@ -121,10 +123,11 @@ prior Runs in the same Comparison Group.
   than guessing.
 - Run association defaults to local date and supports an explicit override for
   moved or ambiguous Runs.
-- Comparable-history artifacts are saved detailed YAML/JSON outputs produced by
-  Run2Max, paired to FIT Files by same basename in the Block folder.
-- YAML and JSON history artifacts may differ in key casing but must not differ
-  semantically when produced from the same detailed profile.
+- Comparable-history Analysis Artifacts are saved detailed YAML/JSON outputs
+  produced by Run2Max, paired to FIT Files by same basename in the Block
+  folder.
+- YAML and JSON Analysis Artifacts may differ in key casing but must not differ
+  semantically when produced from the same Detailed Profile.
 - RPE is actual run-level metadata from existing `--rpe` input, not a prescribed
   or per-step field.
 - The engine remains framework-agnostic and free of CLI rendering concerns.
@@ -143,17 +146,17 @@ prior Runs in the same Comparison Group.
   throwing and without fabricating steps.
 - A moved-Run fixture can be compared to the intended Prescribed Run through an
   explicit override.
-- Two saved detailed history artifacts in the same Comparison Group produce
+- Two saved detailed Analysis Artifacts in the same Comparison Group produce
   deterministic deltas for avg power, avg/max HR, avg pace, and run-level RPE
   where the source data is present.
-- Partial or non-detailed history artifacts are rejected or skipped with a clear
-  unavailable reason.
+- Partial or non-detailed Analysis Artifacts are rejected or skipped with a
+  clear unavailable reason.
 - `pnpm test` and package build/DTS checks pass at parent-issue closure.
 
 ## Success signals
 
 - Reviewing a serious interval Run no longer requires mentally lining up Plan
-  notes, FIT laps, and old YAML outputs by hand.
+  notes, FIT laps, and old Analysis Artifacts by hand.
 - The feature explains exactly why comparison is unavailable when data is
   missing, instead of silently falling back to weak heuristics.
 - Adding another evidence metric later is localized to comparison data and
@@ -161,7 +164,7 @@ prior Runs in the same Comparison Group.
   lookup.
 - The Plan remains readable despite added Prescribed Runs because the authored
   notation stays compact.
-- A future week-level adherence view can reuse Prescribed Run association and
+- A future Week Progress view can reuse Prescribed Run association and
   comparison data without redefining the prescription model.
 
 ## Open questions
@@ -170,17 +173,22 @@ prior Runs in the same Comparison Group.
   `--prescribed-run <selector>`. Bare `YYYY-MM-DD` and `date:YYYY-MM-DD` select
   by Prescribed Run local date; bare text and `label:<label>` select by label.
   `label:` is the escape hatch for date-shaped labels.
-- MUST RESOLVE: What detailed-profile marker or validation rule proves a saved
-  YAML/JSON artifact is detailed enough for history comparison?
+- Resolved during parent #66: detailed-profile eligibility is validated by data
+  presence on normalized artifacts (`capturedDate`, `comparisonGroup`, and at
+  least one supported metric field in `prescriptionComparison.actual`) with
+  structured `partial_artifact` reasons and `missingFields` diagnostics when
+  required evidence is absent.
 - Resolved during parent #60: single-Run prescription-comparison shape is now a
   structured `PrescriptionComparison` contract with `available` and
   `unavailable` states on `AnalysisResult.prescriptionComparison`.
-- Partially resolved during parent #60: single-Run unavailable reasons are
-  `missing_laps` and `step_count_mismatch`. Remaining history-unavailable
-  taxonomy (missing artifact, partial artifact, missing prior RPE) remains for
-  comparable-history implementation.
-- RESOLVE THROUGH IMPLEMENTATION: Whether history lookup prefers YAML over JSON
-  or rejects same-basename ambiguity when both exist.
+- Resolved during parent #66: comparable-history unavailable taxonomy is now
+  implemented end-to-end, including top-level
+  `no_candidates`/`all_candidates_unavailable` plus structured per-artifact and
+  per-metric unavailable reasons (e.g., `partial_artifact`,
+  `unparseable_artifact`, `ambiguous_artifact`, `missing_prior_value`).
+- Resolved during parent #66: same-basename YAML/JSON conflicts are handled by
+  explicit rejection (`ambiguous_artifact`) rather than implicit format
+  precedence.
 
 Resolved during parent #53: Prescription Notation accepts both ASCII `->` and
 Unicode `→`; parsed output is the canonical ordered Prescribed Step sequence,

@@ -91,6 +91,9 @@ or set `weather: false` in config to disable.
 | `weatherPerSplit`      | Hourly weather interpolated per km split                                       |
 | `anomalies`            | Detected anomalies                                                             |
 | `capabilities`         | `hasRunningDynamics`, `hasStrydEnhanced`                                       |
+| `planContext`          | Plan week context when a Plan is loaded (always forwarded, not profile-gated)  |
+| `prescribedRunContext` | Matched Prescribed Run metadata when association succeeds                      |
+| `prescriptionComparison` | Single-Run Prescription Comparison (available or unavailable) when matched  |
 
 ### `loadConfig(options?)`
 
@@ -125,7 +128,7 @@ const { output, warnings } = formatResult(result, "markdown", DEFAULT_PROFILE);
 
 `DEFAULT_PROFILE` sections (in order): `summary` · `elevation_profile` ·
 `weather` · `segments` · `km_splits` · `zones` · `dynamics` · `anomalies` ·
-`metadata`. Columns: `all`. `skipSegmentsIfSingleLap: true`.
+`prescription_comparison` · `metadata`. Columns: `all`. `skipSegmentsIfSingleLap: true`.
 
 Warnings are returned (not thrown) for dropped columns or skipped sections.
 
@@ -143,7 +146,7 @@ const fullView = formatPlanStatus(status, { view: "full" });
 
 **All sections:** `summary` · `elevation_profile` · `weather` · `segments` ·
 `km_splits` · `zones` · `hr_zones` · `pace_zones` · `dynamics` · `anomalies` ·
-`metadata`
+`prescription_comparison` · `metadata`
 
 **All columns and requirements:**
 

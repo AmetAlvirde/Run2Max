@@ -3,6 +3,7 @@ plans/
 dist/
 .claude/
 .opencode/
+.codex/
 *.tsbuildinfo
 .DS_Store
 fixture-fits/*.fit

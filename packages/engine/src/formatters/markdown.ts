@@ -331,6 +331,71 @@ function formatCompletionDelta(targetKind: "distance" | "duration", delta: numbe
     : `${sign}${Math.round(delta)} s`;
 }
 
+function formatComparableMetricLabel(metric: string): string {
+  switch (metric) {
+    case "avgPower":
+      return "Avg Power";
+    case "avgHeartRate":
+      return "Avg HR";
+    case "maxHeartRate":
+      return "Max HR";
+    case "avgPace":
+      return "Avg Pace";
+    case "rpe":
+      return "RPE";
+    default:
+      return metric;
+  }
+}
+
+function formatComparableMetricValue(metric: string, value: number | null): string {
+  if (value == null) return NULL_PLACEHOLDER;
+
+  switch (metric) {
+    case "avgPower":
+      return fmtPower(value);
+    case "avgHeartRate":
+    case "maxHeartRate":
+      return fmtHR(value);
+    case "avgPace":
+      return fmtPace(value);
+    case "rpe":
+      return String(value);
+    default:
+      return String(value);
+  }
+}
+
+function formatComparableMetricDelta(metric: string, delta: number): string {
+  const sign = delta >= 0 ? "+" : "-";
+  const absoluteDelta = Math.abs(delta);
+
+  switch (metric) {
+    case "avgPower":
+      return `${sign}${fmtPower(absoluteDelta)}`;
+    case "avgHeartRate":
+    case "maxHeartRate":
+      return `${sign}${fmtHR(absoluteDelta)}`;
+    case "avgPace":
+      return `${sign}${fmtPace(absoluteDelta)}`;
+    case "rpe":
+      return `${sign}${absoluteDelta}`;
+    default:
+      return `${sign}${absoluteDelta}`;
+  }
+}
+
+function formatUnavailableCandidateReason(candidate: {
+  fitBasename: string;
+  reason: string;
+  missingFields?: ReadonlyArray<string>;
+}): string {
+  if (candidate.reason === "partial_artifact" && candidate.missingFields && candidate.missingFields.length > 0) {
+    return `${candidate.fitBasename} (${candidate.reason}: ${candidate.missingFields.join(",")})`;
+  }
+  return `${candidate.fitBasename} (${candidate.reason})`;
+}
+
 function renderPrescriptionComparison(result: FilteredResult): string {
   const comparison = result.prescriptionComparison;
   if (!comparison) return "";
@@ -391,6 +456,50 @@ function renderPrescriptionComparison(result: FilteredResult): string {
   ]);
 
   lines.push(padTable(headers, rows));
+
+  if (comparison.comparableHistory) {
+    lines.push("");
+    lines.push("Comparable History");
+
+    if (comparison.comparableHistory.status === "available") {
+      if (comparison.comparableHistory.runs.length === 0) {
+        lines.push("- unavailable (no_candidates)");
+      } else {
+        for (const run of comparison.comparableHistory.runs) {
+          lines.push(`- ${run.capturedDate} | ${run.sourcePath}`);
+          const metricHeaders = ["Metric", "Current", "Prior", "Delta"];
+          const metricRows = run.metrics.map((metric) => {
+            if (metric.status === "available") {
+              return [
+                formatComparableMetricLabel(metric.metric),
+                formatComparableMetricValue(metric.metric, metric.current),
+                formatComparableMetricValue(metric.metric, metric.prior),
+                formatComparableMetricDelta(metric.metric, metric.delta),
+              ];
+            }
+
+            return [
+              formatComparableMetricLabel(metric.metric),
+              formatComparableMetricValue(metric.metric, metric.current),
+              formatComparableMetricValue(metric.metric, metric.prior),
+              `unavailable (${metric.reason})`,
+            ];
+          });
+          lines.push(padTable(metricHeaders, metricRows));
+        }
+      }
+    } else {
+      const reasons = comparison.comparableHistory.candidates
+        .map((candidate) => formatUnavailableCandidateReason(candidate))
+        .join("; ");
+      lines.push(
+        reasons.length > 0
+          ? `- unavailable (${comparison.comparableHistory.reason}): ${reasons}`
+          : `- unavailable (${comparison.comparableHistory.reason})`
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 

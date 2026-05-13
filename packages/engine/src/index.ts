@@ -28,6 +28,15 @@ export { syncWeek, SyncError } from "./plan/sync.js";
 export type { SyncData } from "./plan/sync.js";
 export { adjustPlan, AdjustError } from "./plan/adjust.js";
 export { walkPlan } from "./plan/walk.js";
+export { readHistoryArtifacts } from "./plan/history.js";
+export type {
+  HistoryArtifactDescriptor,
+  HistoryArtifactEligible,
+  HistoryArtifactUnavailable,
+  HistoryArtifactReport,
+  ReadHistoryArtifactsOptions,
+  HistoryRequiredField,
+} from "./plan/history.js";
 
 // ---------------------------------------------------------------------------
 // Runs and capture
@@ -55,8 +64,20 @@ export type {
 
 export { quantify } from "./computations/quantify.js";
 export { comparePrescriptionToSegments } from "./computations/prescription-comparison.js";
+export { computeComparableHistoryDelta } from "./computations/comparable-history.js";
 export { formatResult } from "./formatters/index.js";
 export type {
+  ComparableHistoryMetric,
+  ComparableHistoryUnavailableReason,
+  ComparableHistoryMetricDelta,
+  ComparableHistoryMetricDeltaAvailable,
+  ComparableHistoryMetricDeltaUnavailable,
+  ComparableHistoryRunDelta,
+} from "./computations/comparable-history.js";
+export type {
+  ComparableHistory,
+  ComparableHistoryAvailable,
+  ComparableHistoryUnavailable,
   OutputFormat,
   PrescriptionComparison,
   PrescriptionComparisonAvailable,

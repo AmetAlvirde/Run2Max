@@ -238,7 +238,7 @@ A profile controls which sections and columns appear in the output.
 
 **Sections:** `summary` · `elevation_profile` · `weather` · `segments` ·
 `km_splits` · `zones` · `hr_zones` · `pace_zones` · `dynamics` · `anomalies` ·
-`metadata`
+`prescription_comparison` · `metadata`
 
 **Columns and requirements:**
 
