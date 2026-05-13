@@ -242,6 +242,99 @@ function buildUnavailableComparison(): NonNullable<AnalysisResult["prescriptionC
   };
 }
 
+function buildComparableHistoryAvailableComparison(): NonNullable<AnalysisResult["prescriptionComparison"]> {
+  const comparison = buildAvailableComparison();
+  if (comparison.status !== "available") {
+    throw new Error("expected available comparison fixture");
+  }
+
+  return {
+    ...comparison,
+    comparableHistory: {
+      status: "available",
+      runs: [
+        {
+          sourcePath: "/tmp/block/run-1.json",
+          fitBasename: "run-1",
+          capturedDate: "2026-04-05",
+          comparisonGroup: "threshold_5min",
+          metrics: [
+            { metric: "avgPower", status: "available", current: 224, prior: 200, delta: 24 },
+            { metric: "avgHeartRate", status: "available", current: 140, prior: 132, delta: 8 },
+            { metric: "maxHeartRate", status: "available", current: 165, prior: 160, delta: 5 },
+            { metric: "avgPace", status: "available", current: 409, prior: 420, delta: -11 },
+            { metric: "rpe", status: "available", current: 2, prior: 3, delta: -1 },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function buildComparableHistoryWithMissingPriorRpeComparison(): NonNullable<AnalysisResult["prescriptionComparison"]> {
+  const comparison = buildComparableHistoryAvailableComparison();
+  if (comparison.status !== "available" || !comparison.comparableHistory || comparison.comparableHistory.status !== "available") {
+    throw new Error("expected available comparable history fixture");
+  }
+
+  return {
+    ...comparison,
+    comparableHistory: {
+      ...comparison.comparableHistory,
+      runs: [
+        {
+          ...comparison.comparableHistory.runs[0]!,
+          metrics: [
+            { metric: "avgPower", status: "available", current: 224, prior: 200, delta: 24 },
+            { metric: "avgHeartRate", status: "available", current: 140, prior: 132, delta: 8 },
+            { metric: "maxHeartRate", status: "available", current: 165, prior: 160, delta: 5 },
+            { metric: "avgPace", status: "available", current: 409, prior: 420, delta: -11 },
+            {
+              metric: "rpe",
+              status: "unavailable",
+              current: 2,
+              prior: null,
+              reason: "missing_prior_value",
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function buildComparableHistoryUnavailableComparison(): NonNullable<AnalysisResult["prescriptionComparison"]> {
+  const comparison = buildAvailableComparison();
+  if (comparison.status !== "available") {
+    throw new Error("expected available comparison fixture");
+  }
+
+  return {
+    ...comparison,
+    comparableHistory: {
+      status: "unavailable",
+      reason: "all_candidates_unavailable",
+      candidates: [
+        {
+          status: "unavailable",
+          sourcePath: ["/tmp/block/run-1.yaml", "/tmp/block/run-1.json"],
+          format: "unknown",
+          fitBasename: "run-1",
+          reason: "ambiguous_artifact",
+        },
+        {
+          status: "unavailable",
+          sourcePath: "/tmp/block/run-2.json",
+          format: "json",
+          fitBasename: "run-2",
+          reason: "partial_artifact",
+          missingFields: ["rpe"],
+        },
+      ],
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -472,6 +565,66 @@ describe("formatResult", () => {
       expect(output).toContain("Counts: Prescribed Steps 8 | Actual Segments 7");
       expect(output).not.toContain("| Prescribed Step | Source | Target Kind");
     });
+
+    it("renders comparable history subsection for available prescription comparison", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryAvailableComparison(),
+      });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("Comparable History");
+      expect(output).toContain("2026-04-05");
+      expect(output).toContain("/tmp/block/run-1.json");
+    });
+
+    it("renders comparable history metric values with units and signed deltas", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryAvailableComparison(),
+      });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("| Avg Power");
+      expect(output).toContain("+24 W");
+      expect(output).toContain("| Avg HR");
+      expect(output).toContain("+8 bpm");
+      expect(output).toContain("| Max HR");
+      expect(output).toContain("+5 bpm");
+      expect(output).toContain("| Avg Pace");
+      expect(output).toContain("-0:11/km");
+      expect(output).toContain("| RPE");
+      expect(output).toContain("|       -1 |");
+    });
+
+    it("renders unavailable comparable-history metrics inline with explicit reasons", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryWithMissingPriorRpeComparison(),
+      });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("missing_prior_value");
+      expect(output).toContain("unavailable (missing_prior_value)");
+      expect(output).not.toContain("| RPE       |       2 |       0 |");
+    });
+
+    it("renders unavailable comparable history with top-level and candidate reasons", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryUnavailableComparison(),
+      });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("Comparable History");
+      expect(output).toContain("all_candidates_unavailable");
+      expect(output).toContain("ambiguous_artifact");
+      expect(output).toContain("partial_artifact: rpe");
+    });
+
+    it("does not render comparable history when available comparison has no comparableHistory", () => {
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("## Prescription Comparison");
+      expect(output).not.toContain("Comparable History");
+    });
   });
 
   // ─── PROFILE FILTERING: SECTIONS ──────────────────────────────────────────
@@ -502,6 +655,21 @@ describe("formatResult", () => {
       const yaml = parseYaml(formatResult(result, "yaml", profile).output) as Record<string, unknown>;
 
       expect(markdown).not.toContain("## Prescription Comparison");
+      expect(json["prescriptionComparison"]).toBeUndefined();
+      expect(yaml["prescription_comparison"]).toBeUndefined();
+    });
+
+    it("omits comparable history in all formats when prescription_comparison is excluded", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryAvailableComparison(),
+      });
+
+      const markdown = formatResult(result, "markdown", profile).output;
+      const json = JSON.parse(formatResult(result, "json", profile).output) as Record<string, unknown>;
+      const yaml = parseYaml(formatResult(result, "yaml", profile).output) as Record<string, unknown>;
+
+      expect(markdown).not.toContain("Comparable History");
       expect(json["prescriptionComparison"]).toBeUndefined();
       expect(yaml["prescription_comparison"]).toBeUndefined();
     });
@@ -746,6 +914,37 @@ describe("formatResult", () => {
       expect(comparison["actualSegmentCount"]).toBe(7);
     });
 
+    it("preserves available comparableHistory shape under prescriptionComparison", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryAvailableComparison(),
+      });
+      const { output } = formatResult(result, "json", DEFAULT_PROFILE);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const comparison = parsed["prescriptionComparison"] as Record<string, unknown>;
+      const comparableHistory = comparison["comparableHistory"] as Record<string, unknown>;
+      const runs = comparableHistory["runs"] as Array<Record<string, unknown>>;
+
+      expect(comparableHistory["status"]).toBe("available");
+      expect(runs[0]!["sourcePath"]).toBe("/tmp/block/run-1.json");
+      expect(runs[0]!["capturedDate"]).toBe("2026-04-05");
+    });
+
+    it("preserves unavailable comparableHistory shape under prescriptionComparison", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryUnavailableComparison(),
+      });
+      const { output } = formatResult(result, "json", DEFAULT_PROFILE);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const comparison = parsed["prescriptionComparison"] as Record<string, unknown>;
+      const comparableHistory = comparison["comparableHistory"] as Record<string, unknown>;
+      const candidates = comparableHistory["candidates"] as Array<Record<string, unknown>>;
+
+      expect(comparableHistory["status"]).toBe("unavailable");
+      expect(comparableHistory["reason"]).toBe("all_candidates_unavailable");
+      expect(candidates[0]!["reason"]).toBe("ambiguous_artifact");
+      expect(candidates[1]!["reason"]).toBe("partial_artifact");
+    });
+
     it("produces valid JSON", () => {
       const { output } = formatResult(buildResult(), "json", DEFAULT_PROFILE);
       expect(() => JSON.parse(output)).not.toThrow();
@@ -856,6 +1055,23 @@ describe("formatResult", () => {
       expect(comparison["reason"]).toBe("step_count_mismatch");
       expect(comparison["prescribed_step_count"]).toBe(8);
       expect(comparison["actual_segment_count"]).toBe(7);
+    });
+
+    it("includes snake_case comparable_history fields in YAML output", () => {
+      const result = buildResult({
+        prescriptionComparison: buildComparableHistoryWithMissingPriorRpeComparison(),
+      });
+      const { output } = formatResult(result, "yaml", DEFAULT_PROFILE);
+      const parsed = parseYaml(output) as Record<string, unknown>;
+      const comparison = parsed["prescription_comparison"] as Record<string, unknown>;
+      const comparableHistory = comparison["comparable_history"] as Record<string, unknown>;
+      const runs = comparableHistory["runs"] as Array<Record<string, unknown>>;
+      const metrics = runs[0]!["metrics"] as Array<Record<string, unknown>>;
+
+      expect(comparableHistory["status"]).toBe("available");
+      expect(runs[0]!["source_path"]).toBe("/tmp/block/run-1.json");
+      expect(runs[0]!["captured_date"]).toBe("2026-04-05");
+      expect(metrics[4]!["reason"]).toBe("missing_prior_value");
     });
 
     it("omits prescription comparison when result has no comparison data", () => {

@@ -144,16 +144,18 @@ integration plus formatter work depends on the reader being closed first.
   the current Run's saved Analysis Artifact existing yet. `quantify` now passes
   `currentFitBasename` to the reader, and the current basename is excluded
   explicitly by contract.
-- Markdown output must not invent missing values. A missing-prior-RPE delta
-  remains an explicit per-metric unavailable line; it does not silently drop the
-  row or substitute zero.
-- The cycle PRD non-goal "No arbitrary partial-output history. A prior artifact
-  must contain the data required for the requested comparison." remains
-  enforced. Per-metric eligibility is the gate; a partial artifact is surfaced
-  as a labeled unavailable reason, not as a zero-delta row.
-- If the rendered comparable-history shape needs more than the current Markdown
-  row plus structured per-metric blocks, do not expand this parent into a
-  presentation model. Open a follow-up parent for richer history presentation.
+- **RESOLVED by sub-issue #70:** Markdown output does not invent missing values.
+  A missing-prior-RPE delta remains an explicit per-metric unavailable line; it
+  is not dropped and is not substituted with zero.
+- **RESOLVED by sub-issue #70:** The cycle PRD non-goal "No arbitrary
+  partial-output history. A prior artifact must contain the data required for
+  the requested comparison." remains enforced. Per-metric eligibility remains
+  the gate, and partial artifacts surface labeled unavailable reasons instead of
+  zero-delta rows.
+- **RESOLVED by sub-issue #70:** Comparable-history output remains in the
+  existing Markdown subsection plus structured per-metric blocks under
+  `prescription_comparison`; this sub-issue introduces no formatter-local
+  presentation model.
 
 ## Sub-issues
 
@@ -183,3 +185,13 @@ integration plus formatter work depends on the reader being closed first.
   results for Prescribed Runs with a Comparison Group, and preserve inert
   behavior when the gate cannot run. No formatter rendering, no reader change,
   and no delta arithmetic change in this sub-issue.
+
+- [x] [70-comparable-history-formatter-output](70-comparable-history-formatter-output/sub-issue.md)
+
+  Render the attached `comparableHistory` block through the existing
+  `prescription_comparison` formatter surface: Markdown gains a factual
+  Comparable History subsection with per-metric deltas and unavailable reasons,
+  JSON preserves `prescriptionComparison.comparableHistory`, and YAML exposes
+  `prescription_comparison.comparable_history` through the existing snake-case
+  conversion. No history lookup, no delta arithmetic, no `quantify` integration,
+  and no new Output Profile section in this sub-issue.
