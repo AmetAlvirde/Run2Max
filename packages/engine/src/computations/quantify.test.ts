@@ -236,7 +236,8 @@ describe("quantify", () => {
 
     expect(result.summary.avgPowerZone).toBeNull();
     expect(result.summary.avgHeartRatePctLthr).toBeNull();
-    expect(result.segments).toEqual([]);
+    expect(result.segments.length).toBeGreaterThan(0);
+    expect(result.segments[0].zone).toBeNull();
     expect(result.zoneDistribution).toEqual([]);
     expect(result.kmSplits.length).toBeGreaterThan(0); // km splits don't require zones
   });
@@ -260,6 +261,22 @@ describe("quantify", () => {
     expect(result.prescribedRunContext?.weekNumber).toBe(1);
   });
 
+  it("adds available prescriptionComparison when prescribed run and lap count match", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.prescribedRunContext).toBeDefined();
+    expect(result.prescriptionComparison?.status).toBe("available");
+  });
+
   it("keeps prescribedRunContext undefined when no prescribed run matches", async () => {
     const normalized = buildNormalizedData(20);
     vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
@@ -275,6 +292,46 @@ describe("quantify", () => {
     expect(result.planContext).toBeDefined();
     expect(result.planContext?.weekNumber).toBe(1);
     expect(result.prescribedRunContext).toBeUndefined();
+    expect(result.prescriptionComparison).toBeUndefined();
+  });
+
+  it("adds unavailable missing_laps comparison when prescribed run matches but laps are missing", async () => {
+    const normalized = buildNormalizedData(20);
+    normalized.laps = [];
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.prescribedRunContext).toBeDefined();
+    expect(result.prescriptionComparison).toBeDefined();
+    expect(result.prescriptionComparison?.status).toBe("unavailable");
+    if (result.prescriptionComparison?.status !== "unavailable") {
+      throw new Error("expected unavailable comparison");
+    }
+
+    expect(result.prescriptionComparison.reason).toBe("missing_laps");
+  });
+
+  it("builds comparison when plan is present even without zone config", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.segments.length).toBeGreaterThan(0);
+    expect(result.segments[0].zone).toBeNull();
+    expect(result.prescriptionComparison?.status).toBe("available");
   });
 
   it("supports cross-week prescribed run override while preserving date-based planContext", async () => {

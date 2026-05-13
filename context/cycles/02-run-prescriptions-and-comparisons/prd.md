@@ -172,11 +172,13 @@ prior Runs in the same Comparison Group.
   `label:` is the escape hatch for date-shaped labels.
 - MUST RESOLVE: What detailed-profile marker or validation rule proves a saved
   YAML/JSON artifact is detailed enough for history comparison?
-- RESOLVE THROUGH IMPLEMENTATION: Exact structured output shape for the
-  prescription-comparison section.
-- RESOLVE THROUGH IMPLEMENTATION: Exact unavailable-reason taxonomy for missing
-  laps, step-count mismatch, missing history artifact, partial history artifact,
-  and missing RPE.
+- Resolved during parent #60: single-Run prescription-comparison shape is now a
+  structured `PrescriptionComparison` contract with `available` and
+  `unavailable` states on `AnalysisResult.prescriptionComparison`.
+- Partially resolved during parent #60: single-Run unavailable reasons are
+  `missing_laps` and `step_count_mismatch`. Remaining history-unavailable
+  taxonomy (missing artifact, partial artifact, missing prior RPE) remains for
+  comparable-history implementation.
 - RESOLVE THROUGH IMPLEMENTATION: Whether history lookup prefers YAML over JSON
   or rejects same-basename ambiguity when both exist.
 
