@@ -1,6 +1,8 @@
 import type { RecordData } from "normalize-fit-file";
 import type { Run2MaxConfig } from "./config/schema.js";
 import type { Plan, PrescribedStep } from "./plan/types.js";
+import type { ComparableHistoryRunDelta } from "./computations/comparable-history.js";
+import type { HistoryArtifactUnavailable } from "./plan/history.js";
 export type { Run2MaxConfig, ZoneConfig, OutputProfileConfig } from "./config/schema.js";
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,12 @@ export interface QuantifyOptions {
    * Defaults to the current working directory when plan is provided.
    */
   fitDirPath?: string;
+  /**
+   * Basename of the current FIT file without extension.
+   * Used to exclude the current Run's own saved Analysis Artifact from
+   * comparable-history lookup.
+   */
+  currentFitBasename?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +301,22 @@ export interface PrescriptionComparisonAvailable {
   prescribedRun: PrescriptionComparisonRunContext;
   actual: PrescriptionComparisonRunActuals;
   steps: PrescriptionStepComparison[];
+  comparableHistory?: ComparableHistory;
+}
+
+export type ComparableHistory =
+  | ComparableHistoryAvailable
+  | ComparableHistoryUnavailable;
+
+export interface ComparableHistoryAvailable {
+  status: "available";
+  runs: ReadonlyArray<ComparableHistoryRunDelta>;
+}
+
+export interface ComparableHistoryUnavailable {
+  status: "unavailable";
+  reason: "no_candidates" | "all_candidates_unavailable";
+  candidates: ReadonlyArray<HistoryArtifactUnavailable>;
 }
 
 export interface PrescriptionComparisonRunContext {

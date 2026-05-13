@@ -136,12 +136,14 @@ integration plus formatter work depends on the reader being closed first.
   `avgPower`, `avgHeartRate`, `maxHeartRate`, `avgPace`, or `rpe`. Missing
   required fields are surfaced as `partial_artifact` with explicit
   `missingFields`.
-- Comparable-history lookup must remain inert when the Prescribed Run has no
-  Comparison Group. This parent does not introduce implicit grouping by
-  Prescribed Run label or by Week Type.
-- Comparable-history lookup must not depend on the current Run's saved Analysis
-  Artifact existing yet. The reader excludes the current FIT basename from the
-  candidate set explicitly, not by relying on the artifact being absent.
+- **RESOLVED by sub-issue #69:** Comparable-history lookup remains inert when
+  the Prescribed Run has no Comparison Group. Integration only runs when
+  `prescribedRunContext.comparisonGroup` is present; no implicit grouping by
+  Prescribed Run label or Week Type is introduced.
+- **RESOLVED by sub-issue #69:** Comparable-history lookup does not depend on
+  the current Run's saved Analysis Artifact existing yet. `quantify` now passes
+  `currentFitBasename` to the reader, and the current basename is excluded
+  explicitly by contract.
 - Markdown output must not invent missing values. A missing-prior-RPE delta
   remains an explicit per-metric unavailable line; it does not silently drop the
   row or substitute zero.
@@ -173,7 +175,7 @@ integration plus formatter work depends on the reader being closed first.
   side lacks a value. No history reader change, no `quantify` integration, no
   `AnalysisResult` field change, and no formatter changes in this sub-issue.
 
-- [ ] [69-quantify-comparable-history-integration](69-quantify-comparable-history-integration/sub-issue.md)
+- [x] [69-quantify-comparable-history-integration](69-quantify-comparable-history-integration/sub-issue.md)
 
   Integrate the closed history reader and delta helper into `quantify`: add the
   minimal current-FIT-basename input needed to exclude the current artifact,

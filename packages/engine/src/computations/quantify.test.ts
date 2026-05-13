@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import type { Run2MaxConfig } from "../types.js";
 
 // Mock normalize-fit-file to avoid needing real .fit files
@@ -112,6 +115,54 @@ function makePlanWithPrescribedRuns(options?: {
       },
     ],
   });
+}
+
+function makePlanWithoutComparisonGroup() {
+  return parsePlan({
+    schema_version: 1,
+    block: "build",
+    goal: "Half Marathon Santiago",
+    start: "2026-04-06",
+    mesocycles: [
+      {
+        name: "CANAL",
+        fractals: [
+          {
+            weeks: [
+              {
+                planned: "L",
+                start: "2026-04-06",
+                prescribed_runs: [
+                  {
+                    local_date: "2026-04-12",
+                    label: "Sunday Endurance",
+                    prescription: "30min @ E",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
+type FileMap = Record<string, string>;
+
+async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
+  const dir = await mkdtemp(join(tmpdir(), "run2max-quantify-test-"));
+  try {
+    await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+async function writeFiles(dir: string, files: FileMap): Promise<void> {
+  for (const [name, content] of Object.entries(files)) {
+    await writeFile(join(dir, name), content, "utf-8");
+  }
 }
 
 const CONFIG: Run2MaxConfig = {
@@ -275,6 +326,269 @@ describe("quantify", () => {
 
     expect(result.prescribedRunContext).toBeDefined();
     expect(result.prescriptionComparison?.status).toBe("available");
+  });
+
+  it("attaches available comparableHistory when comparison group and history inputs exist", async () => {
+    await withTempDir(async (dir) => {
+      await writeFiles(dir, {
+        "run-1.fit": "",
+        "run-1.json": JSON.stringify({
+          capturedDate: "2026-04-05",
+          comparisonGroup: "endurance",
+          prescriptionComparison: {
+            actual: {
+              duration: 20,
+              distance: 45,
+              avgPower: 200,
+              avgHeartRate: 130,
+              maxHeartRate: 145,
+              avgPace: 400,
+              rpe: 3,
+            },
+          },
+        }),
+      });
+
+      const normalized = buildNormalizedData(20);
+      vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+      vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+      const plan = makePlanWithPrescribedRuns();
+      const result = await quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        fitDirPath: dir,
+        currentFitBasename: "run-2",
+      });
+
+      expect(result.prescriptionComparison?.status).toBe("available");
+      if (result.prescriptionComparison?.status !== "available") {
+        throw new Error("expected available comparison");
+      }
+
+      expect(result.prescriptionComparison.comparableHistory).toMatchObject({
+        status: "available",
+      });
+      if (result.prescriptionComparison.comparableHistory?.status !== "available") {
+        throw new Error("expected available comparable history");
+      }
+
+      expect(result.prescriptionComparison.comparableHistory.runs).toHaveLength(1);
+      expect(result.prescriptionComparison.comparableHistory.runs[0]).toMatchObject({
+        fitBasename: "run-1",
+        comparisonGroup: "endurance",
+        capturedDate: "2026-04-05",
+      });
+    });
+  });
+
+  it("attaches unavailable comparableHistory when lookup runs with no eligible priors", async () => {
+    await withTempDir(async (dir) => {
+      await writeFiles(dir, {
+        "run-1.fit": "",
+        "run-1.yaml": "captured_date: 2026-04-05",
+        "run-1.json": JSON.stringify({
+          capturedDate: "2026-04-05",
+          comparisonGroup: "endurance",
+          prescriptionComparison: {
+            actual: {
+              duration: 20,
+              distance: 45,
+              avgPower: 200,
+              avgHeartRate: 130,
+              maxHeartRate: 145,
+              avgPace: 400,
+              rpe: 3,
+            },
+          },
+        }),
+      });
+
+      const normalized = buildNormalizedData(20);
+      vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+      vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+      const plan = makePlanWithPrescribedRuns();
+      const result = await quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        fitDirPath: dir,
+        currentFitBasename: "run-2",
+      });
+
+      expect(result.prescriptionComparison?.status).toBe("available");
+      if (result.prescriptionComparison?.status !== "available") {
+        throw new Error("expected available comparison");
+      }
+
+      expect(result.prescriptionComparison.comparableHistory).toMatchObject({
+        status: "unavailable",
+        reason: "all_candidates_unavailable",
+      });
+    });
+  });
+
+  it("excludes the current basename from comparableHistory candidates", async () => {
+    await withTempDir(async (dir) => {
+      await writeFiles(dir, {
+        "run-1.fit": "",
+        "run-1.json": JSON.stringify({
+          capturedDate: "2026-04-05",
+          comparisonGroup: "endurance",
+          prescriptionComparison: {
+            actual: {
+              duration: 20,
+              distance: 45,
+              avgPower: 200,
+              avgHeartRate: 130,
+              maxHeartRate: 145,
+              avgPace: 400,
+              rpe: 3,
+            },
+          },
+        }),
+        "run-2.fit": "",
+        "run-2.json": JSON.stringify({
+          capturedDate: "2026-04-12",
+          comparisonGroup: "endurance",
+          prescriptionComparison: {
+            actual: {
+              duration: 20,
+              distance: 50,
+              avgPower: 210,
+              avgHeartRate: 135,
+              maxHeartRate: 150,
+              avgPace: 390,
+              rpe: 4,
+            },
+          },
+        }),
+      });
+
+      const normalized = buildNormalizedData(20);
+      vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+      vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+      const plan = makePlanWithPrescribedRuns();
+      const result = await quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        fitDirPath: dir,
+        currentFitBasename: "run-2",
+      });
+
+      expect(result.prescriptionComparison?.status).toBe("available");
+      if (result.prescriptionComparison?.status !== "available") {
+        throw new Error("expected available comparison");
+      }
+      expect(result.prescriptionComparison.comparableHistory?.status).toBe("available");
+      if (result.prescriptionComparison.comparableHistory?.status !== "available") {
+        throw new Error("expected available comparable history");
+      }
+
+      expect(result.prescriptionComparison.comparableHistory.runs).toHaveLength(1);
+      expect(result.prescriptionComparison.comparableHistory.runs[0]?.fitBasename).toBe("run-1");
+    });
+  });
+
+  it("keeps comparableHistory undefined when prescribed run has no comparison group", async () => {
+    await withTempDir(async (dir) => {
+      await writeFiles(dir, {
+        "run-1.fit": "",
+        "run-1.json": JSON.stringify({
+          capturedDate: "2026-04-05",
+          comparisonGroup: "endurance",
+          prescriptionComparison: {
+            actual: {
+              duration: 20,
+              distance: 45,
+              avgPower: 200,
+              avgHeartRate: 130,
+              maxHeartRate: 145,
+              avgPace: 400,
+              rpe: 3,
+            },
+          },
+        }),
+      });
+
+      const normalized = buildNormalizedData(20);
+      vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+      vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+      const plan = makePlanWithoutComparisonGroup();
+      const result = await quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        fitDirPath: dir,
+        currentFitBasename: "run-2",
+      });
+
+      expect(result.prescriptionComparison?.status).toBe("available");
+      if (result.prescriptionComparison?.status !== "available") {
+        throw new Error("expected available comparison");
+      }
+      expect(result.prescriptionComparison.comparableHistory).toBeUndefined();
+    });
+  });
+
+  it("keeps comparableHistory undefined when history inputs are missing", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const resultWithoutDir = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+      currentFitBasename: "run-2",
+    });
+
+    expect(resultWithoutDir.prescriptionComparison?.status).toBe("available");
+    if (resultWithoutDir.prescriptionComparison?.status !== "available") {
+      throw new Error("expected available comparison");
+    }
+    expect(resultWithoutDir.prescriptionComparison.comparableHistory).toBeUndefined();
+
+    const resultWithoutBasename = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+      fitDirPath: ".",
+    });
+
+    expect(resultWithoutBasename.prescriptionComparison?.status).toBe("available");
+    if (resultWithoutBasename.prescriptionComparison?.status !== "available") {
+      throw new Error("expected available comparison");
+    }
+    expect(resultWithoutBasename.prescriptionComparison.comparableHistory).toBeUndefined();
+  });
+
+  it("keeps comparableHistory undefined when prescriptionComparison is unavailable", async () => {
+    const normalized = buildNormalizedData(20);
+    normalized.laps = [];
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+      fitDirPath: ".",
+      currentFitBasename: "run-2",
+    });
+
+    expect(result.prescriptionComparison?.status).toBe("unavailable");
+    if (result.prescriptionComparison?.status !== "unavailable") {
+      throw new Error("expected unavailable comparison");
+    }
+    expect((result.prescriptionComparison as { comparableHistory?: unknown }).comparableHistory).toBeUndefined();
   });
 
   it("keeps prescribedRunContext undefined when no prescribed run matches", async () => {

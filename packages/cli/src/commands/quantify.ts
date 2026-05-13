@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import { readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import {
   loadConfig,
   loadPlan,
@@ -255,6 +255,7 @@ export default defineCommand({
 
     // ---- Discover and load plan.yaml (silent when absent)
     const fitDir = resolve(dirname(args.file));
+    const currentFitBasename = basename(args.file, extname(args.file));
     let plan: Plan | undefined;
     if (args.plan) {
       // --plan can be a file path or a directory path
@@ -306,6 +307,7 @@ export default defineCommand({
         plan,
         ...(prescribedRunOverride ? { prescribedRunOverride } : {}),
         fitDirPath: fitDir,
+        currentFitBasename,
       });
     } catch (err) {
       fatal(

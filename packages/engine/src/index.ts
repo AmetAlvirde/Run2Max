@@ -75,6 +75,9 @@ export type {
   ComparableHistoryRunDelta,
 } from "./computations/comparable-history.js";
 export type {
+  ComparableHistory,
+  ComparableHistoryAvailable,
+  ComparableHistoryUnavailable,
   OutputFormat,
   PrescriptionComparison,
   PrescriptionComparisonAvailable,
