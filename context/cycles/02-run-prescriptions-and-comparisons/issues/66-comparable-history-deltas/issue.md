@@ -172,3 +172,12 @@ integration plus formatter work depends on the reader being closed first.
   rate, avg pace, and RPE, and return per-metric unavailable reasons when either
   side lacks a value. No history reader change, no `quantify` integration, no
   `AnalysisResult` field change, and no formatter changes in this sub-issue.
+
+- [ ] [69-quantify-comparable-history-integration](69-quantify-comparable-history-integration/sub-issue.md)
+
+  Integrate the closed history reader and delta helper into `quantify`: add the
+  minimal current-FIT-basename input needed to exclude the current artifact,
+  attach structured `comparableHistory` to available Prescription Comparison
+  results for Prescribed Runs with a Comparison Group, and preserve inert
+  behavior when the gate cannot run. No formatter rendering, no reader change,
+  and no delta arithmetic change in this sub-issue.
