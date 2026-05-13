@@ -135,7 +135,7 @@ describe("parseConfig", () => {
       ...minimalConfig,
       output: {
         default: {
-          sections: ["summary", "elevation_profile", "weather", "hr_zones", "pace_zones", "metadata"],
+          sections: ["summary", "elevation_profile", "weather", "hr_zones", "pace_zones", "prescription_comparison", "metadata"],
         },
       },
     });
@@ -143,6 +143,7 @@ describe("parseConfig", () => {
     expect(result.output?.default?.sections).toContain("weather");
     expect(result.output?.default?.sections).toContain("hr_zones");
     expect(result.output?.default?.sections).toContain("pace_zones");
+    expect(result.output?.default?.sections).toContain("prescription_comparison");
     expect(result.output?.default?.sections).toContain("metadata");
   });
 

@@ -375,6 +375,7 @@ export type SectionId =
   | "weather"
   | "hr_zones"
   | "pace_zones"
+  | "prescription_comparison"
   | "metadata";
 
 export type ColumnId =
