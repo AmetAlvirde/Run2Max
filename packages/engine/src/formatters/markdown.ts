@@ -320,6 +320,80 @@ function renderAnomalies(result: FilteredResult): string {
   return ["## Anomalies", "", ...items].join("\n");
 }
 
+function formatCompletionValue(targetKind: "distance" | "duration", value: number): string {
+  return targetKind === "distance" ? fmtDistance(value) : fmtDuration(value);
+}
+
+function formatCompletionDelta(targetKind: "distance" | "duration", delta: number): string {
+  const sign = delta >= 0 ? "+" : "";
+  return targetKind === "distance"
+    ? `${sign}${(delta / 1000).toFixed(2)} km`
+    : `${sign}${Math.round(delta)} s`;
+}
+
+function renderPrescriptionComparison(result: FilteredResult): string {
+  const comparison = result.prescriptionComparison;
+  if (!comparison) return "";
+
+  const lines: string[] = ["## Prescription Comparison", ""];
+  lines.push(`Prescribed Run: ${comparison.prescribedRun.label} (${comparison.prescribedRun.localDate})`);
+  lines.push(`Match Kind: ${comparison.prescribedRun.matchKind}`);
+  if (comparison.prescribedRun.comparisonGroup) {
+    lines.push(`Comparison Group: ${comparison.prescribedRun.comparisonGroup}`);
+  }
+
+  if (comparison.status === "unavailable") {
+    lines.push(`Status: unavailable (${comparison.reason})`);
+    lines.push(
+      `Counts: Prescribed Steps ${comparison.prescribedStepCount} | Actual Segments ${comparison.actualSegmentCount}`
+    );
+    return lines.join("\n");
+  }
+
+  const runActualParts = [
+    `Duration: ${fmtDuration(comparison.actual.duration)}`,
+    `Distance: ${fmtDistance(comparison.actual.distance)}`,
+    `Avg Power: ${comparison.actual.avgPower != null ? fmtPower(comparison.actual.avgPower) : NULL_PLACEHOLDER}`,
+    `Avg HR: ${comparison.actual.avgHeartRate != null ? fmtHR(comparison.actual.avgHeartRate) : NULL_PLACEHOLDER}`,
+    `Avg Pace: ${comparison.actual.avgPace != null ? fmtPace(comparison.actual.avgPace) : NULL_PLACEHOLDER}`,
+  ];
+  if (comparison.actual.maxHeartRate != null) {
+    runActualParts.push(`Max HR: ${fmtHR(comparison.actual.maxHeartRate)}`);
+  }
+  if (comparison.actual.rpe != null) {
+    runActualParts.push(`RPE: ${comparison.actual.rpe}`);
+  }
+  lines.push(`Actual Run: ${runActualParts.join(" | ")}`);
+  lines.push("");
+
+  const headers = [
+    "Prescribed Step",
+    "Source",
+    "Target Kind",
+    "Actual Completion",
+    "Delta",
+    "Completion",
+    "Power",
+    "Avg HR",
+    "Avg Pace",
+  ];
+
+  const rows = comparison.steps.map((step) => [
+    `${step.index + 1} (lap ${step.actual.lapIndex + 1})`,
+    step.prescribed.source,
+    step.completion.targetKind,
+    formatCompletionValue(step.completion.targetKind, step.completion.actualValue),
+    formatCompletionDelta(step.completion.targetKind, step.completion.delta),
+    step.completion.status,
+    step.power.status,
+    step.actual.avgHeartRate != null ? fmtHR(step.actual.avgHeartRate) : NULL_PLACEHOLDER,
+    step.actual.avgPace != null ? fmtPace(step.actual.avgPace) : NULL_PLACEHOLDER,
+  ]);
+
+  lines.push(padTable(headers, rows));
+  return lines.join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // Plan context header (always rendered above sections when present)
 // ---------------------------------------------------------------------------
@@ -361,6 +435,7 @@ const SECTION_RENDERERS: Record<
   pace_zones:        (r) => renderPaceZones(r),
   dynamics:          (r) => renderDynamics(r),
   anomalies:         (r) => renderAnomalies(r),
+  prescription_comparison: (r) => renderPrescriptionComparison(r),
   metadata:          (r) => renderMetadata(r),
 };
 

@@ -55,6 +55,7 @@ export function formatYaml(
   if (filtered.dynamicsSummary !== undefined)  out["dynamicsSummary"] = filtered.dynamicsSummary;
   if (filtered.anomalies !== undefined)        out["anomalies"] = filtered.anomalies;
   if (filtered.planContext !== undefined)      out["planContext"] = filtered.planContext;
+  if (filtered.prescriptionComparison !== undefined) out["prescriptionComparison"] = filtered.prescriptionComparison;
 
   return stringify(camelToSnake(out));
 }

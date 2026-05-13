@@ -24,6 +24,7 @@ const SECTION_IDS = [
   "weather",
   "hr_zones",
   "pace_zones",
+  "prescription_comparison",
   "metadata",
 ] as const;
 

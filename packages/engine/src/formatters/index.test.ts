@@ -167,6 +167,81 @@ function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
   };
 }
 
+function buildAvailableComparison(): NonNullable<AnalysisResult["prescriptionComparison"]> {
+  return {
+    status: "available",
+    prescribedRun: {
+      label: "4x5min",
+      localDate: "2026-04-12",
+      comparisonGroup: "threshold_5min",
+      matchKind: "date",
+      weekNumber: 4,
+      weekType: "L",
+    },
+    actual: {
+      duration: 7402,
+      distance: 18080,
+      avgPower: 224,
+      avgHeartRate: 140,
+      maxHeartRate: 165,
+      avgPace: 409,
+      rpe: 2,
+    },
+    steps: [
+      {
+        index: 0,
+        prescribed: {
+          source: "5min@SUB-T",
+          target: { kind: "duration", value: 300, unit: "seconds" },
+          intensityLabel: "SUB-T",
+          targetRange: { metric: "power", min: 289, max: 301, unit: "W" },
+        },
+        actual: {
+          lapIndex: 0,
+          distance: 1510,
+          duration: 300,
+          avgPower: 295,
+          avgHeartRate: 155,
+          avgPace: 238,
+        },
+        completion: {
+          targetKind: "duration",
+          prescribedValue: 300,
+          actualValue: 300,
+          delta: 0,
+          ratio: 1,
+          status: "within_tolerance",
+          tolerance: { lower: 285, upper: 315 },
+        },
+        power: {
+          status: "within",
+          actualAvgPower: 295,
+          targetRange: { metric: "power", min: 289, max: 301, unit: "W" },
+          deltaToMin: 6,
+          deltaToMax: -6,
+        },
+      },
+    ],
+  };
+}
+
+function buildUnavailableComparison(): NonNullable<AnalysisResult["prescriptionComparison"]> {
+  return {
+    status: "unavailable",
+    reason: "step_count_mismatch",
+    prescribedRun: {
+      label: "4x5min",
+      localDate: "2026-04-12",
+      comparisonGroup: "threshold_5min",
+      matchKind: "date",
+      weekNumber: 4,
+      weekType: "L",
+    },
+    prescribedStepCount: 8,
+    actualSegmentCount: 7,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -185,6 +260,7 @@ describe("formatResult", () => {
         "zones",
         "dynamics",
         "anomalies",
+        "prescription_comparison",
         "metadata",
       ]);
     });
@@ -372,6 +448,30 @@ describe("formatResult", () => {
       const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
       expect(output).toContain("224 W (E)");
     });
+
+    it("renders available prescription comparison section with run and step evidence", () => {
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("## Prescription Comparison");
+      expect(output).toContain("Prescribed Run: 4x5min (2026-04-12)");
+      expect(output).toContain("Match Kind: date");
+      expect(output).toContain("Comparison Group: threshold_5min");
+      expect(output).toContain("Actual Run:");
+      expect(output).toContain("5min@SUB-T");
+      expect(output).toContain("within_tolerance");
+      expect(output).toContain("within");
+    });
+
+    it("renders unavailable prescription comparison without a fabricated step table", () => {
+      const result = buildResult({ prescriptionComparison: buildUnavailableComparison() });
+      const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
+
+      expect(output).toContain("## Prescription Comparison");
+      expect(output).toContain("Status: unavailable (step_count_mismatch)");
+      expect(output).toContain("Counts: Prescribed Steps 8 | Actual Segments 7");
+      expect(output).not.toContain("| Prescribed Step | Source | Target Kind");
+    });
   });
 
   // ─── PROFILE FILTERING: SECTIONS ──────────────────────────────────────────
@@ -391,6 +491,19 @@ describe("formatResult", () => {
       const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
       const { output } = formatResult(buildResult(), "markdown", profile);
       expect(output).not.toContain("## Metadata");
+    });
+
+    it("hides prescription comparison when section is excluded", () => {
+      const profile = { ...DEFAULT_PROFILE, sections: ["summary"] as SectionId[] };
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+
+      const markdown = formatResult(result, "markdown", profile).output;
+      const json = JSON.parse(formatResult(result, "json", profile).output) as Record<string, unknown>;
+      const yaml = parseYaml(formatResult(result, "yaml", profile).output) as Record<string, unknown>;
+
+      expect(markdown).not.toContain("## Prescription Comparison");
+      expect(json["prescriptionComparison"]).toBeUndefined();
+      expect(yaml["prescription_comparison"]).toBeUndefined();
     });
 
     it("includes ## Metadata when metadata is in sections", () => {
@@ -579,11 +692,60 @@ describe("formatResult", () => {
       const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
       expect(output).toContain("## Workout Splits");
     });
+
+    it("does not hide prescription comparison when segments are skipped", () => {
+      const profile = { ...DEFAULT_PROFILE, skipSegmentsIfSingleLap: true };
+      const result = buildResult({
+        segments: [buildResult().segments[0]!],
+        prescriptionComparison: buildAvailableComparison(),
+      });
+      const { output } = formatResult(result, "markdown", profile);
+
+      expect(output).not.toContain("## Workout Splits");
+      expect(output).toContain("## Prescription Comparison");
+    });
   });
 
   // ─── JSON FORMAT ──────────────────────────────────────────────────────────
 
   describe("json format", () => {
+    it("includes prescriptionComparison in default JSON output when comparison data exists", () => {
+      const result = buildResult({
+        prescriptionComparison: buildAvailableComparison(),
+      });
+
+      const { output } = formatResult(result, "json", DEFAULT_PROFILE);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+
+      expect(parsed["prescriptionComparison"]).toBeDefined();
+    });
+
+    it("preserves available prescription comparison shape", () => {
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+      const { output } = formatResult(result, "json", DEFAULT_PROFILE);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const comparison = parsed["prescriptionComparison"] as Record<string, unknown>;
+      const actual = comparison["actual"] as Record<string, unknown>;
+      const steps = comparison["steps"] as Array<Record<string, unknown>>;
+
+      expect(comparison["status"]).toBe("available");
+      expect(comparison["prescribedRun"]).toBeDefined();
+      expect(actual["avgPower"]).toBe(224);
+      expect(steps).toHaveLength(1);
+    });
+
+    it("preserves unavailable prescription comparison shape", () => {
+      const result = buildResult({ prescriptionComparison: buildUnavailableComparison() });
+      const { output } = formatResult(result, "json", DEFAULT_PROFILE);
+      const parsed = JSON.parse(output) as Record<string, unknown>;
+      const comparison = parsed["prescriptionComparison"] as Record<string, unknown>;
+
+      expect(comparison["status"]).toBe("unavailable");
+      expect(comparison["reason"]).toBe("step_count_mismatch");
+      expect(comparison["prescribedStepCount"]).toBe(8);
+      expect(comparison["actualSegmentCount"]).toBe(7);
+    });
+
     it("produces valid JSON", () => {
       const { output } = formatResult(buildResult(), "json", DEFAULT_PROFILE);
       expect(() => JSON.parse(output)).not.toThrow();
@@ -670,6 +832,58 @@ describe("formatResult", () => {
       const parsed = parseYaml(output) as Record<string, unknown>;
       expect(parsed["summary"]).toBeDefined();
       expect(parsed["segments"]).toBeUndefined();
+    });
+
+    it("includes snake_case prescription_comparison for available shape", () => {
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+      const { output } = formatResult(result, "yaml", DEFAULT_PROFILE);
+      const parsed = parseYaml(output) as Record<string, unknown>;
+      const comparison = parsed["prescription_comparison"] as Record<string, unknown>;
+
+      expect(comparison["status"]).toBe("available");
+      expect(comparison["prescribed_run"]).toBeDefined();
+      expect(comparison["actual"]).toBeDefined();
+      expect(comparison["steps"]).toBeDefined();
+    });
+
+    it("includes snake_case unavailable fields in prescription_comparison", () => {
+      const result = buildResult({ prescriptionComparison: buildUnavailableComparison() });
+      const { output } = formatResult(result, "yaml", DEFAULT_PROFILE);
+      const parsed = parseYaml(output) as Record<string, unknown>;
+      const comparison = parsed["prescription_comparison"] as Record<string, unknown>;
+
+      expect(comparison["status"]).toBe("unavailable");
+      expect(comparison["reason"]).toBe("step_count_mismatch");
+      expect(comparison["prescribed_step_count"]).toBe(8);
+      expect(comparison["actual_segment_count"]).toBe(7);
+    });
+
+    it("omits prescription comparison when result has no comparison data", () => {
+      const { output: jsonOutput } = formatResult(buildResult(), "json", DEFAULT_PROFILE);
+      const { output: yamlOutput } = formatResult(buildResult(), "yaml", DEFAULT_PROFILE);
+
+      const parsedJson = JSON.parse(jsonOutput) as Record<string, unknown>;
+      const parsedYaml = parseYaml(yamlOutput) as Record<string, unknown>;
+
+      expect(parsedJson["prescriptionComparison"]).toBeUndefined();
+      expect(parsedYaml["prescription_comparison"]).toBeUndefined();
+    });
+  });
+
+  describe("prescription comparison isolation", () => {
+    it("does not depend on active split columns", () => {
+      const result = buildResult({ prescriptionComparison: buildAvailableComparison() });
+      const profile = {
+        ...DEFAULT_PROFILE,
+        columns: ["power"] as ColumnId[],
+      };
+      const { output } = formatResult(result, "markdown", profile);
+
+      expect(output).toContain("## Prescription Comparison");
+      expect(output).toContain("Completion");
+      expect(output).toContain("Power");
+      expect(output).toContain("within_tolerance");
+      expect(output).toContain("within");
     });
   });
 });

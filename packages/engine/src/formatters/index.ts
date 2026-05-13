@@ -7,6 +7,7 @@ import type {
   FormatResult,
   OutputFormat,
   PlanContext,
+  PrescriptionComparison,
   RunSummary,
   SegmentRow,
   KmSplitRow,
@@ -28,7 +29,7 @@ import { formatYaml } from "./yaml.js";
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_PROFILE: OutputProfileConfig = {
-  sections: ["summary", "elevation_profile", "weather", "segments", "km_splits", "zones", "dynamics", "anomalies", "metadata"],
+  sections: ["summary", "elevation_profile", "weather", "segments", "km_splits", "zones", "dynamics", "anomalies", "prescription_comparison", "metadata"],
   columns: "all",
   skipSegmentsIfSingleLap: true,
 };
@@ -59,6 +60,7 @@ interface FilteredResult {
   anomalies?: Anomaly[];
   /** Periodization context — always passed through when present on AnalysisResult. */
   planContext?: PlanContext;
+  prescriptionComparison?: PrescriptionComparison;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +112,7 @@ function applyProfile(
 ): { filtered: FilteredResult; activeSections: SectionId[]; warnings: string[] } {
   const allSections: SectionId[] = [
     "summary", "elevation_profile", "weather", "segments", "km_splits",
-    "zones", "hr_zones", "pace_zones", "dynamics", "anomalies", "metadata",
+    "zones", "hr_zones", "pace_zones", "dynamics", "anomalies", "prescription_comparison", "metadata",
   ];
   let activeSections: SectionId[] = profile.sections ?? allSections;
   const warnings: string[] = [];
@@ -145,6 +147,9 @@ function applyProfile(
   if (activeSections.includes("pace_zones"))  filtered.paceZoneDistribution = result.paceZoneDistribution;
   if (activeSections.includes("dynamics"))    filtered.dynamicsSummary = result.dynamicsSummary;
   if (activeSections.includes("anomalies"))   filtered.anomalies = result.anomalies;
+  if (activeSections.includes("prescription_comparison") && result.prescriptionComparison) {
+    filtered.prescriptionComparison = result.prescriptionComparison;
+  }
 
   return { filtered, activeSections, warnings };
 }
