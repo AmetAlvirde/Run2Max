@@ -136,23 +136,23 @@ integration plus formatter work depends on the reader being closed first.
   `avgPower`, `avgHeartRate`, `maxHeartRate`, `avgPace`, or `rpe`. Missing
   required fields are surfaced as `partial_artifact` with explicit
   `missingFields`.
-- **RESOLVED by sub-issue #69:** Comparable-history lookup remains inert when
+- **RESOLVED by sub-issue #70:** Comparable-history lookup remains inert when
   the Prescribed Run has no Comparison Group. Integration only runs when
   `prescribedRunContext.comparisonGroup` is present; no implicit grouping by
   Prescribed Run label or Week Type is introduced.
-- **RESOLVED by sub-issue #69:** Comparable-history lookup does not depend on
+- **RESOLVED by sub-issue #70:** Comparable-history lookup does not depend on
   the current Run's saved Analysis Artifact existing yet. `quantify` now passes
   `currentFitBasename` to the reader, and the current basename is excluded
   explicitly by contract.
-- **RESOLVED by sub-issue #70:** Markdown output does not invent missing values.
+- **RESOLVED by sub-issue #71:** Markdown output does not invent missing values.
   A missing-prior-RPE delta remains an explicit per-metric unavailable line; it
   is not dropped and is not substituted with zero.
-- **RESOLVED by sub-issue #70:** The cycle PRD non-goal "No arbitrary
+- **RESOLVED by sub-issue #71:** The cycle PRD non-goal "No arbitrary
   partial-output history. A prior artifact must contain the data required for
   the requested comparison." remains enforced. Per-metric eligibility remains
   the gate, and partial artifacts surface labeled unavailable reasons instead of
   zero-delta rows.
-- **RESOLVED by sub-issue #70:** Comparable-history output remains in the
+- **RESOLVED by sub-issue #71:** Comparable-history output remains in the
   existing Markdown subsection plus structured per-metric blocks under
   `prescription_comparison`; this sub-issue introduces no formatter-local
   presentation model.
@@ -168,7 +168,7 @@ integration plus formatter work depends on the reader being closed first.
   later delta computation. No `quantify` integration, no formatter changes, no
   delta computation in this sub-issue.
 
-- [x] [68-comparable-history-delta-computation](68-comparable-history-delta-computation/sub-issue.md)
+- [x] [69-comparable-history-delta-computation](69-comparable-history-delta-computation/sub-issue.md)
 
   Implement the pure Comparable-History Delta computation: consume current
   Prescription Comparison actuals and one eligible prior history artifact,
@@ -177,7 +177,7 @@ integration plus formatter work depends on the reader being closed first.
   side lacks a value. No history reader change, no `quantify` integration, no
   `AnalysisResult` field change, and no formatter changes in this sub-issue.
 
-- [x] [69-quantify-comparable-history-integration](69-quantify-comparable-history-integration/sub-issue.md)
+- [x] [70-quantify-comparable-history-integration](70-quantify-comparable-history-integration/sub-issue.md)
 
   Integrate the closed history reader and delta helper into `quantify`: add the
   minimal current-FIT-basename input needed to exclude the current artifact,
@@ -186,7 +186,7 @@ integration plus formatter work depends on the reader being closed first.
   behavior when the gate cannot run. No formatter rendering, no reader change,
   and no delta arithmetic change in this sub-issue.
 
-- [x] [70-comparable-history-formatter-output](70-comparable-history-formatter-output/sub-issue.md)
+- [x] [71-comparable-history-formatter-output](71-comparable-history-formatter-output/sub-issue.md)
 
   Render the attached `comparableHistory` block through the existing
   `prescription_comparison` formatter surface: Markdown gains a factual

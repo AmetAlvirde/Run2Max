@@ -1,4 +1,4 @@
-1. Did it go as planned? Yes -- parent #66 delivered comparable-history lookup/classification, deterministic delta computation, `quantify` attachment, and Markdown/JSON/YAML formatter exposure through the planned seams across sub-issues #67-#70.
+1. Did it go as planned? Yes -- parent #66 delivered comparable-history lookup/classification, deterministic delta computation, `quantify` attachment, and Markdown/JSON/YAML formatter exposure through the planned seams across sub-issues #67 and #69-#71.
 2. What changed from the parent issue plan:
 - Descriptor and delta-domain types were kept near their owning modules (`plan/history.ts`, `computations/comparable-history.ts`) and re-exported from the engine surface, rather than centralizing every new type in `types.ts`.
 - `QuantifyOptions.currentFitBasename` was added and CLI-wired from existing FIT path context to support explicit current-artifact exclusion without adding a new CLI flag.

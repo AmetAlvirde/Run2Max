@@ -1,8 +1,8 @@
-# Sub-Issue #70 -- Comparable-History Formatter Output
+# Sub-Issue #71 -- Comparable-History Formatter Output
 
 Vertical slice for parent #66. Delivers Markdown rendering plus JSON/YAML
 serialization coverage for the `comparableHistory` block already attached to an
-available `prescriptionComparison` by sub-issue #69. No history lookup, no delta
+available `prescriptionComparison` by sub-issue #70. No history lookup, no delta
 arithmetic, no `quantify` integration, no new Output Profile section, and no
 presentation model happen in this sub-issue.
 
@@ -32,8 +32,8 @@ or changing YAML case-conversion behavior.
 
 | Dependency                                                                            | Category   | Testing strategy                                                                                                                              |
 | ------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PrescriptionComparisonAvailable.comparableHistory` from sub-issue #69                | In-process | Formatter tests pass literal `AnalysisResult` objects with available and unavailable comparable-history blocks; no `quantify` call is needed. |
-| `ComparableHistoryRunDelta` and per-metric unavailable descriptors from sub-issue #68 | In-process | Markdown tests assert each supported metric is rendered from the structured metric array, including unavailable reasons.                      |
+| `PrescriptionComparisonAvailable.comparableHistory` from sub-issue #70                | In-process | Formatter tests pass literal `AnalysisResult` objects with available and unavailable comparable-history blocks; no `quantify` call is needed. |
+| `ComparableHistoryRunDelta` and per-metric unavailable descriptors from sub-issue #69 | In-process | Markdown tests assert each supported metric is rendered from the structured metric array, including unavailable reasons.                      |
 | `formatMarkdown` existing `prescription_comparison` section renderer                  | In-process | Existing profile-gated formatter tests assert the subsection appears only when the `prescription_comparison` section is active.               |
 | `formatJson` structured serializer                                                    | In-process | JSON tests parse output and assert `prescriptionComparison.comparableHistory` is preserved without renaming or flattening.                    |
 | `formatYaml` and existing `camelToSnake` conversion                                   | In-process | YAML tests parse output and assert `prescription_comparison.comparable_history` exists with nested snake_case metric fields.                  |
@@ -133,7 +133,7 @@ export function formatResult(
 Inputs:
 
 - `AnalysisResult.prescriptionComparison.status === "available"` with optional
-  `comparableHistory` from sub-issue #69.
+  `comparableHistory` from sub-issue #70.
 - Existing Output Profile sections. The only section gate used here is
   `prescription_comparison`.
 
@@ -175,7 +175,7 @@ Error modes:
   metric union should cover all parent #66 metrics.
 - An available comparable-history block with an empty `runs` array is rendered
   as unavailable text rather than a blank subsection, but this is a defensive
-  formatter fallback; sub-issue #69 should normally attach `unavailable` in that
+  formatter fallback; sub-issue #70 should normally attach `unavailable` in that
   case.
 - Candidate diagnostic details are rendered only from fields already present on
   `HistoryArtifactUnavailable`; formatters do not derive or recompute reasons.
@@ -242,7 +242,7 @@ Error modes:
   the expected implementation path is test coverage over existing snake-case
   passthrough.
 - `packages/engine/src/formatters/index.test.ts`
-- `packages/engine/src/types.ts` only if the closed sub-issue #69 shape needs a
+- `packages/engine/src/types.ts` only if the closed sub-issue #70 shape needs a
   naming adjustment discovered during formatter tests; avoid type changes by
   default.
 
@@ -250,9 +250,9 @@ Error modes:
 
 - Upstream: sub-issue #67 provides unavailable candidate reasons surfaced
   through `HistoryArtifactUnavailable` when no eligible prior artifacts exist.
-- Upstream: sub-issue #68 provides `ComparableHistoryRunDelta` metric order,
+- Upstream: sub-issue #69 provides `ComparableHistoryRunDelta` metric order,
   delta direction, and missing-value reasons.
-- Upstream: sub-issue #69 attaches `ComparableHistory` to available
+- Upstream: sub-issue #70 attaches `ComparableHistory` to available
   `PrescriptionComparison` results and preserves unavailable candidate
   descriptors for formatter use.
 - Upstream: parent #63 provides the existing `prescription_comparison` Output

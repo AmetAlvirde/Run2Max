@@ -3,7 +3,7 @@
 > High-level PRD for the next user-facing feature cycle. Sub-PRDs and parent
 > issues will live in this cycle's folder alongside this document.
 >
-> Status: closed. Cycle AAR and decision recorded in `aar.md`.
+> Status: open. Cycle AAR and decision are pending.
 
 ## Focus
 

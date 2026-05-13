@@ -5,4 +5,4 @@
 5. Proposed future features or ideas: Add a follow-on cycle that reuses this cycle's stable seams to present week-over-week progression views and broader evidence surfaces without coupling new behavior to plan parsing or formatter prose.
 6. Patterns across parent issue AARs: Interface-first decomposition worked consistently -- each parent locked contracts early, implemented through public seams (`quantify`, comparison helpers, formatter profile output), and kept behavior testable without over-reliance on rendered text.
 7. Carry-forward to the next cycle: Preserve Plan-as-source-of-truth boundaries, keep `prescriptionComparison` as the typed integration contract, and retain explicit unavailable-reason taxonomy as a first-class part of behavior and tests.
-8. Cycle decision: new feature -- cycle 02 goals are complete, product direction remains aligned with `product.md`, and the next highest-leverage work is additional user-facing capability built on these completed prescription-comparison foundations.
+8. Cycle decision: pending -- cycle 02 was reopened for additional work before closure.

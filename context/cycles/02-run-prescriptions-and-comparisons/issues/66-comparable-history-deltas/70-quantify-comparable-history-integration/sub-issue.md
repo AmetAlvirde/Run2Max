@@ -1,9 +1,9 @@
-# Sub-Issue #69 -- Quantify Comparable-History Integration
+# Sub-Issue #70 -- Quantify Comparable-History Integration
 
 Vertical slice for parent #66. Delivers the engine integration that attaches
 Comparable-History results to an available `prescriptionComparison` during
 `quantify`. This slice consumes the closed history reader from sub-issue #67 and
-the closed delta helper from sub-issue #68. No Markdown rendering, no formatter
+the closed delta helper from sub-issue #69. No Markdown rendering, no formatter
 wording changes, no new Output Profile section, and no history-reader or delta
 arithmetic changes happen in this sub-issue.
 
@@ -31,7 +31,7 @@ Prescribed Run association, recomputing Segments, or changing Zone behavior.
 | Dependency                                         | Category      | Testing strategy                                                                                                                                                                                                     |
 | -------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `readHistoryArtifacts` from sub-issue #67          | In-process    | Integration tests use a real fixture Block directory and assert that `quantify` calls the reader only when the gating conditions are met, through observable `AnalysisResult` output rather than mocking the reader. |
-| `computeComparableHistoryDelta` from sub-issue #68 | In-process    | Integration tests assert the attached per-prior metrics match the pure helper's `current - prior` semantics for at least one prior artifact.                                                                         |
+| `computeComparableHistoryDelta` from sub-issue #69 | In-process    | Integration tests assert the attached per-prior metrics match the pure helper's `current - prior` semantics for at least one prior artifact.                                                                         |
 | `PrescriptionComparisonAvailable` from parent #60  | In-process    | Tests first produce an available single-Run comparison, then assert `comparableHistory` is attached without changing existing `actual` or `steps` fields.                                                            |
 | `QuantifyOptions.fitDirPath`                       | In-process    | Tests pass a fixture directory path; when omitted, Comparable-History lookup remains absent.                                                                                                                         |
 | Current FIT basename provided to `quantify`        | In-process    | Add an optional `currentFitBasename` input and assert the current artifact is excluded. The CLI derives it from the existing file argument, so no new CLI flag is needed.                                            |
@@ -265,7 +265,7 @@ Error modes:
 - Upstream: sub-issue #67 provides `readHistoryArtifacts`,
   `HistoryArtifactEligible`, `HistoryArtifactUnavailable`, and reader top-level
   reasons.
-- Upstream: sub-issue #68 provides `computeComparableHistoryDelta` and
+- Upstream: sub-issue #69 provides `computeComparableHistoryDelta` and
   `ComparableHistoryRunDelta`.
 - Upstream: parent #60 provides available/unavailable `PrescriptionComparison`
   shapes and Run-level actuals.

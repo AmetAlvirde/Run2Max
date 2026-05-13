@@ -1,4 +1,4 @@
-# Sub-Issue #68 -- Comparable-History Delta Computation
+# Sub-Issue #69 -- Comparable-History Delta Computation
 
 Vertical slice for parent #66. Delivers the pure engine computation that turns
 the current Run's Prescription Comparison actuals and one eligible prior history
