@@ -127,18 +127,15 @@ integration plus formatter work depends on the reader being closed first.
 
 ## Flags
 
-- **MUST RESOLVE before parent closes:** the same-basename YAML/JSON precedence
-  rule. Sub-issue #67 must pick one of `prefer_yaml`, `prefer_json`, or
-  `reject_ambiguous`, justify the choice in one sentence here, and ensure the
-  reader's tests assert that rule directly. The cycle PRD open question "Whether
-  history lookup prefers YAML over JSON or rejects same-basename ambiguity when
-  both exist" closes when this flag is filled in.
-- **MUST RESOLVE before parent closes:** the Detailed-Profile eligibility
-  marker. The rule is data-presence based per the acceptance criteria, but the
-  concrete required-field list per metric must be recorded here before closure.
-  The cycle PRD open question "What detailed-profile marker or validation rule
-  proves a saved YAML/JSON artifact is detailed enough for history comparison?"
-  closes when this flag is filled in.
+- **RESOLVED by sub-issue #67:** same-basename YAML/JSON precedence uses
+  `reject_ambiguous`. When both formats exist for one basename, the reader emits
+  one `ambiguous_artifact` descriptor so history deltas never guess between two
+  competing sources of truth.
+- **RESOLVED by sub-issue #67:** Detailed-Profile eligibility is data-presence
+  based and requires `capturedDate`, `comparisonGroup`, and at least one of
+  `avgPower`, `avgHeartRate`, `maxHeartRate`, `avgPace`, or `rpe`. Missing
+  required fields are surfaced as `partial_artifact` with explicit
+  `missingFields`.
 - Comparable-history lookup must remain inert when the Prescribed Run has no
   Comparison Group. This parent does not introduce implicit grouping by
   Prescribed Run label or by Week Type.
@@ -158,7 +155,7 @@ integration plus formatter work depends on the reader being closed first.
 
 ## Sub-issues
 
-- [ ] [67-history-artifact-reader](67-history-artifact-reader/sub-issue.md)
+- [x] [67-history-artifact-reader](67-history-artifact-reader/sub-issue.md)
 
   Implement the pure history Analysis Artifact reader: discovery within a Block
   directory, YAML/JSON parsing and key-case normalization, same-basename
