@@ -163,3 +163,12 @@ integration plus formatter work depends on the reader being closed first.
   current-artifact exclusion, and structured per-candidate descriptors usable by
   later delta computation. No `quantify` integration, no formatter changes, no
   delta computation in this sub-issue.
+
+- [ ] [68-comparable-history-delta-computation](68-comparable-history-delta-computation/sub-issue.md)
+
+  Implement the pure Comparable-History Delta computation: consume current
+  Prescription Comparison actuals and one eligible prior history artifact,
+  compute `current - prior` deltas for avg power, avg heart rate, max heart
+  rate, avg pace, and RPE, and return per-metric unavailable reasons when either
+  side lacks a value. No history reader change, no `quantify` integration, no
+  `AnalysisResult` field change, and no formatter changes in this sub-issue.

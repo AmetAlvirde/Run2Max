@@ -56,7 +56,9 @@
 | **AnalysisResult**          | The full structured output for one Run: summary, segments, km splits, zone distributions, dynamics, elevation, weather, anomalies, capabilities, and optional Plan and prescription context. | report, output                        |
 | **Analysis Artifact**       | A saved YAML or JSON representation of an AnalysisResult produced by Run2Max.                                                                                                                | exported report, saved output         |
 | **Output Profile**          | The selection of AnalysisResult sections and columns included when formatting an Analysis Artifact.                                                                                          | report profile                        |
+| **Detailed Profile**        | The Output Profile intended to include the AnalysisResult sections and columns required to reconstruct Prescription Comparison and Comparable-History Delta evidence.                         | full report, complete profile         |
 | **Prescription Comparison** | The structured portion of an AnalysisResult that compares one Run to its associated Prescribed Run by Prescribed Step order.                                                                 | workout comparison, interval analysis |
+| **Comparable-History Delta** | A deterministic numeric difference between the current Run's actual evidence and one prior same-Comparison Group Run's actual evidence for one supported metric.                              | historical comparison, progress delta |
 | **Completion Tolerance**    | The accepted lower and upper actual-value bounds for classifying Prescribed Step completion against its duration or distance target.                                                         | margin of error, pass/fail threshold  |
 | **Segment**                 | A lap-indexed slice of a Run derived from FIT lap markers.                                                                                                                                   | lap, interval                         |
 | **Km Split**                | A 1-kilometer slice of a Run derived independently of lap markers.                                                                                                                           | kilometer, split                      |
@@ -85,8 +87,12 @@
 - A **Run** produces exactly one **AnalysisResult** per **Quantify** invocation.
 - An **Analysis Artifact** is produced from exactly one **AnalysisResult** using
   one **Output Profile**.
+- A **Detailed Profile** is one **Output Profile**.
 - A **Prescription Comparison** belongs to exactly one **AnalysisResult** and
   compares one **Run** to at most one associated **Prescribed Run**.
+- A **Comparable-History Delta** belongs to one **Prescription Comparison** and
+  compares the current **Run** to one prior **Analysis Artifact** in the same
+  **Comparison Group**.
 - A **Prescription Comparison** uses **Completion Tolerance** to classify each
   comparable **Prescribed Step** as within tolerance, short, or long.
 - A **Zone** belongs to exactly one **Testing Period**, which belongs to exactly
@@ -148,6 +154,18 @@
 > **Dev:** "Can historical deltas use any old saved output file?" **Domain
 > expert:** "No. They use a detailed Analysis Artifact with the sections and
 > columns required for comparison."
+
+> **Dev:** "Which direction is a Comparable-History Delta?" **Domain expert:**
+> "It is current Run actual evidence minus prior Run actual evidence. The sign is
+> not flipped for pace."
+
+> **Dev:** "If the current Run has no RPE but the prior artifact does, should the
+> delta be zero?" **Domain expert:** "No. That metric is unavailable because the
+> current value is missing."
+
+> **Dev:** "Can a prior Analysis Artifact from a different Comparison Group
+> contribute a delta if it has matching metrics?" **Domain expert:** "No. A
+> Comparable-History Delta only compares Runs in the same Comparison Group."
 
 > **Dev:** "If the watch did not record usable lap markers, should we infer the
 > interval boundaries from power spikes?" **Domain expert:** "No. A Prescription
