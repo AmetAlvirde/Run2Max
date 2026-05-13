@@ -245,6 +245,8 @@ export interface AnalysisResult {
   planContext?: PlanContext;
   /** Matched Prescribed Run context when association succeeds. */
   prescribedRunContext?: PrescribedRunContext;
+  /** Structured comparison of actual Segment rows vs Prescribed Steps. */
+  prescriptionComparison?: PrescriptionComparison;
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +282,82 @@ export interface PrescribedRunContext {
   fractalIndex: number;
   totalFractals: number;
   weekStart: string;
+}
+
+export type PrescriptionComparison =
+  | PrescriptionComparisonAvailable
+  | PrescriptionComparisonUnavailable;
+
+export interface PrescriptionComparisonAvailable {
+  status: "available";
+  prescribedRun: PrescriptionComparisonRunContext;
+  actual: PrescriptionComparisonRunActuals;
+  steps: PrescriptionStepComparison[];
+}
+
+export interface PrescriptionComparisonRunContext {
+  label: string;
+  localDate: string;
+  comparisonGroup?: string;
+  matchKind: "date" | "override";
+  weekNumber: number;
+  weekType: string;
+}
+
+export interface PrescriptionComparisonRunActuals {
+  duration: number;
+  distance: number;
+  avgPower: number | null;
+  avgHeartRate: number | null;
+  maxHeartRate: number | null;
+  avgPace: number | null;
+  rpe?: number;
+}
+
+export interface PrescriptionComparisonUnavailable {
+  status: "unavailable";
+  reason: "missing_laps" | "step_count_mismatch";
+  prescribedRun: PrescriptionComparisonRunContext;
+  prescribedStepCount: number;
+  actualSegmentCount: number;
+}
+
+export interface PrescriptionStepComparison {
+  index: number;
+  prescribed: {
+    source: string;
+    target: PrescribedStep["target"];
+    intensityLabel?: string;
+    targetRange?: PrescribedStep["targetRange"];
+  };
+  actual: {
+    lapIndex: number;
+    distance: number;
+    duration: number;
+    avgPower: number | null;
+    avgHeartRate: number | null;
+    avgPace: number | null;
+  };
+  completion: {
+    targetKind: "distance" | "duration";
+    prescribedValue: number;
+    actualValue: number;
+    delta: number;
+    ratio: number | null;
+    status: "within_tolerance" | "short" | "long";
+    tolerance: {
+      lower: number;
+      upper: number;
+    };
+  };
+  power: {
+    status: "below" | "within" | "above" | "unavailable";
+    actualAvgPower: number | null;
+    targetRange?: PrescribedStep["targetRange"];
+    deltaToMin?: number;
+    deltaToMax?: number;
+    reason?: "missing_target_range" | "missing_actual_power";
+  };
 }
 
 // ---------------------------------------------------------------------------

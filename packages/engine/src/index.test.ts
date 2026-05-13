@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { ENGINE_VERSION, addDays, parsePrescriptionNotation } from "./index.js";
+import {
+  ENGINE_VERSION,
+  addDays,
+  parsePrescriptionNotation,
+  comparePrescriptionToSegments,
+} from "./index.js";
 
 describe("engine", () => {
   it("exports a version string", () => {
@@ -13,5 +18,9 @@ describe("engine", () => {
   it("exports parsePrescriptionNotation under periodization", () => {
     const result = parsePrescriptionNotation("3min @ SUB-T[260-280W]");
     expect(result.ok).toBe(true);
+  });
+
+  it("exports comparePrescriptionToSegments under analysis output", () => {
+    expect(typeof comparePrescriptionToSegments).toBe("function");
   });
 });

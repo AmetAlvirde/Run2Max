@@ -1,4 +1,4 @@
-# Parent Issue #56 -- Run-to-Prescribed-Run Association
+# Parent Issue #59 -- Run-to-Prescribed-Run Association
 
 > Translated to `issue.md`. This sub-PRD records the product-level intent --
 > user stories and dependencies. Update `issue.md` for ongoing technical work.

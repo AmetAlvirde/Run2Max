@@ -20,6 +20,7 @@ import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
 import { computeSummary } from "./summary.js";
 import { computeSegments } from "./segments.js";
+import { comparePrescriptionToSegments } from "./prescription-comparison.js";
 import { computeKmSplits } from "./km-splits.js";
 import {
   computePowerZoneDistribution,
@@ -83,9 +84,7 @@ export async function quantify(
 
   const elevationProfile = computeElevationProfile(records, normalized.session);
 
-  const segments = zones
-    ? computeSegments(records, normalized.laps, zones, capabilities)
-    : [];
+  const segments = computeSegments(records, normalized.laps, zones, capabilities);
 
   const kmSplits = computeKmSplits(records, zones, capabilities);
 
@@ -142,6 +141,7 @@ export async function quantify(
   // 9. Plan context (optional — only when options.plan is provided)
   let planContext: PlanContext | undefined;
   let prescribedRunContext: PrescribedRunContext | undefined;
+  let prescriptionComparison: AnalysisResult["prescriptionComparison"];
   if (options.plan) {
     const timezone = options.timezone ?? config?.athlete?.timezone ?? "UTC";
     const prescribedAssoc = findPrescribedRun(
@@ -167,6 +167,12 @@ export async function quantify(
         totalFractals: weekContext.totalFractals,
         weekStart: weekContext.week.start,
       };
+
+      prescriptionComparison = comparePrescriptionToSegments(
+        prescribedRunContext,
+        finalSegments,
+        summary,
+      );
     }
 
     const weekAssoc = associateRun(options.plan, summary.date, timezone);
@@ -240,5 +246,6 @@ export async function quantify(
     capabilities,
     planContext,
     prescribedRunContext,
+    prescriptionComparison,
   };
 }

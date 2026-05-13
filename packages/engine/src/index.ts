@@ -54,8 +54,17 @@ export type {
 // ---------------------------------------------------------------------------
 
 export { quantify } from "./computations/quantify.js";
+export { comparePrescriptionToSegments } from "./computations/prescription-comparison.js";
 export { formatResult } from "./formatters/index.js";
-export type { OutputFormat } from "./types.js";
+export type {
+  OutputFormat,
+  PrescriptionComparison,
+  PrescriptionComparisonAvailable,
+  PrescriptionComparisonUnavailable,
+  PrescriptionComparisonRunContext,
+  PrescriptionComparisonRunActuals,
+  PrescriptionStepComparison,
+} from "./types.js";
 export { formatPlanStatus } from "./formatters/plan.js";
 
 // ---------------------------------------------------------------------------
