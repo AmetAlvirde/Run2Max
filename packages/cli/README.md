@@ -1,7 +1,10 @@
 # @run2max/cli
 
 CLI for run2max. Parses `.fit` files into structured run analysis and manages
-training plan files.
+training plan files. When a `plan.yaml` is available, `quantify` can associate a
+Run to a Prescribed Run, compare FIT laps to Prescribed Steps, and include
+Comparable-History Deltas from prior detailed YAML/JSON Analysis Artifacts in
+the same Comparison Group.
 
 ## Installation
 
@@ -64,6 +67,38 @@ run2max quantify my-run.fit --prescribed-run "Tuesday Intervals"
 run2max quantify my-run.fit --prescribed-run label:2026-05-12
 ```
 
+### Plan-backed prescription comparison
+
+Without `--prescribed-run`, `quantify` auto-discovers `plan.yaml` beside the
+`.fit` file when `--plan` is not supplied. With `--prescribed-run`, a Plan is
+required; pass `--plan <path-or-dir>` or run the command from a directory that
+contains `plan.yaml`. When a Prescribed Run matches by local date, or when
+`--prescribed-run` selects one by date or label, output includes
+`prescription_comparison` if the output profile allows that section.
+
+```yaml
+weeks:
+  - start: "2026-05-11"
+    planned: "LL"
+    prescribed_runs:
+      - local_date: "2026-05-12"
+        label: "Tuesday Intervals"
+        comparison_group: "sub-threshold-3min"
+        prescription: "1.6K @ E -> 4(3min @ SUB-T[260-280W]/1min @ E) -> 1.6K @ E"
+```
+
+Prescription Notation v1 supports ordered steps with `->` or `→`, repeated
+work/recovery groups such as `4(.../...)`, distance targets in `K`, duration
+targets in `min`, intensity labels after `@`, and inline power Target Ranges such
+as `[260-280W]`. Plan loading requires Target Ranges for numerically comparable
+labels; easy/recovery labels `E`, `LR`, and `REC` may omit them.
+
+Comparable-History Deltas are included under an available
+`prescription_comparison` when prior detailed YAML/JSON Analysis Artifacts in the
+same Block directory share the Prescribed Run's `comparison_group`. The current
+FIT File is excluded from history candidates regardless of `.fit` extension
+case.
+
 ## All flags
 
 | Flag                  | Short | Default | Description                                                                                         |
@@ -80,7 +115,7 @@ run2max quantify my-run.fit --prescribed-run label:2026-05-12
 | `--config`            | `-c`  | —       | Explicit config file path                                                                           |
 | `--exclude-anomalies` | —     | `false` | Exclude anomalous values from aggregations                                                          |
 | `--no-weather`        | —     | `false` | Skip weather fetch for this run                                                                     |
-| `--plan`              | —     | —       | Path to `plan.yaml` or its directory (auto-discovered from the `.fit` file's directory when absent) |
+| `--plan`              | —     | —       | Path to `plan.yaml` or its directory; absent non-override runs auto-discover beside the `.fit` file |
 | `--prescribed-run`    | —     | —       | Override prescribed-run association: `YYYY-MM-DD`, `date:YYYY-MM-DD`, `label:<label>`, or label text |
 
 ## Plan commands
@@ -216,10 +251,12 @@ output:
         summary,
         elevation_profile,
         weather,
+        segments,
         km_splits,
         zones,
         dynamics,
         anomalies,
+        prescription_comparison,
         metadata,
       ]
     columns: [power, zone, pace, hr, cadence, elev_gain, elev_loss, wind, temp]

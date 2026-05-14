@@ -16,6 +16,6 @@
    surface with behavior-first tests through the command entry point and kept
    engine match semantics untouched.
 6. Carry-forward -- flags to write in the cycle, notes for the PRD AAR: No new
-   flags from this parent. The cycle PRD's Prescribed Run override MUST RESOLVE
-   question is now resolved and documented. Parent closure verification passed
+   flags from this parent. The cycle PRD's Prescribed Run override question is
+   resolved and documented. Parent closure verification passed
    with `pnpm test` and `pnpm build`.

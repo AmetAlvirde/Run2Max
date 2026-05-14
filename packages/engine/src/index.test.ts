@@ -9,7 +9,7 @@ import {
 
 describe("engine", () => {
   it("exports a version string", () => {
-    expect(ENGINE_VERSION).toBe("2.0.0");
+    expect(ENGINE_VERSION).toBe("2.1.0");
   });
 
   it("exports addDays for cross-package plan date math", () => {

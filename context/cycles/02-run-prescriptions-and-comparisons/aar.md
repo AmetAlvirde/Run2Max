@@ -4,8 +4,8 @@
 4. New considerations or constraints surfaced: FIT lap availability remains the hard boundary for step-level comparison (no heuristic fallback), and unavailable reasons must stay structured and explicit (`missing_laps`, `step_count_mismatch`, `partial_artifact`, `ambiguous_artifact`, `missing_prior_value`, etc.) so evidence is deterministic and non-fabricated across engine, quantify, and formatter surfaces.
 5. Proposed future features or ideas: Add a follow-on cycle that reuses this cycle's stable seams to present week-over-week progression views and broader evidence surfaces without coupling new behavior to plan parsing or formatter prose.
 6. Patterns across parent issue AARs: Interface-first decomposition worked consistently -- each parent locked contracts early, implemented through public seams (`quantify`, comparison helpers, formatter profile output), and kept behavior testable without over-reliance on rendered text.
-7. Carry-forward to the next cycle: Preserve Plan-as-source-of-truth boundaries, keep `prescriptionComparison` as the typed integration contract, and retain explicit unavailable-reason taxonomy as a first-class part of behavior and tests.
-8. Cycle decision: pending -- parent #73 completed the reliability pass; final PRD closure decision remains a separate cycle-closure step.
+7. Carry-forward to the next cycle: Preserve Plan-as-source-of-truth boundaries, keep `prescriptionComparison` as the typed integration contract, retain explicit unavailable-reason taxonomy as a first-class part of behavior and tests, and consider a Week Progress feature that reuses Prescribed Run association plus Comparable-History Delta seams.
+8. Cycle decision: new feature -- the product as built still matches `context/product.md`, and the next useful step is another product feature on top of these Reliable seams rather than a pivot or feature-complete stop.
 
 ## Reliability Pass
 

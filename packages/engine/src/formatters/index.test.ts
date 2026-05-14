@@ -16,7 +16,7 @@ const BASE_DATE = new Date("2026-04-12T08:20:00Z"); // Sunday in UTC
 function buildResult(overrides?: Partial<AnalysisResult>): AnalysisResult {
   return {
     metadata: {
-      version: "2.0.0",
+      version: "2.1.0",
       downsample: null,
       anomaliesExcluded: false,
       fileSampleRate: null,
@@ -382,14 +382,14 @@ describe("formatResult", () => {
 
     it("metadata renders version, downsample=none, anomalies=included", () => {
       const { output } = formatResult(buildResult(), "markdown", DEFAULT_PROFILE);
-      expect(output).toContain("run2max v2.0.0");
+      expect(output).toContain("run2max v2.1.0");
       expect(output).toContain("none");
       expect(output).toContain("included");
     });
 
     it("metadata renders downsample as Ns when set", () => {
       const result = buildResult({
-        metadata: { version: "2.0.0", downsample: 5, anomaliesExcluded: true, fileSampleRate: null },
+        metadata: { version: "2.1.0", downsample: 5, anomaliesExcluded: true, fileSampleRate: null },
       });
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).toContain("5s");
@@ -398,7 +398,7 @@ describe("formatResult", () => {
 
     it("metadata renders File sample rate when fileSampleRate is set", () => {
       const result = buildResult({
-        metadata: { version: "2.0.0", downsample: null, anomaliesExcluded: false, fileSampleRate: 1 },
+        metadata: { version: "2.1.0", downsample: null, anomaliesExcluded: false, fileSampleRate: 1 },
       });
       const { output } = formatResult(result, "markdown", DEFAULT_PROFILE);
       expect(output).toContain("File sample rate: 1s");
@@ -955,7 +955,7 @@ describe("formatResult", () => {
       const parsed = JSON.parse(output) as Record<string, unknown>;
       expect(parsed["metadata"]).toBeDefined();
       const meta = parsed["metadata"] as Record<string, unknown>;
-      expect(meta["version"]).toBe("2.0.0");
+      expect(meta["version"]).toBe("2.1.0");
       expect(meta["downsample"]).toBeNull();
       expect(meta["anomaliesExcluded"]).toBe(false);
     });

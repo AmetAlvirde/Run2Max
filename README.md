@@ -1,7 +1,9 @@
 # run2max
 
-Structured run analysis from `.fit` files. Takes a Stryd `.fit` file and
-produces a clean markdown (or JSON/YAML) analysis.
+Structured run analysis from `.fit` files. Takes a Stryd `.fit` file plus an
+optional `plan.yaml` and produces clean markdown, JSON, or YAML analysis with
+plan context, prescription comparison, and comparable-history deltas when the
+required artifacts are present.
 
 ```bash
 run2max quantify my-run.fit
@@ -25,6 +27,9 @@ pnpm build
 
 # Analyze a run
 run2max quantify my-run.fit
+
+# Analyze against a Plan-backed Prescribed Run
+run2max quantify my-run.fit --plan . --prescribed-run "Tuesday Intervals"
 ```
 
 See [`packages/cli/README.md`](packages/cli/README.md) for the full CLI
