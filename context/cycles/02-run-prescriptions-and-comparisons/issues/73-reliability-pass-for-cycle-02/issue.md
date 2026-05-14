@@ -77,9 +77,9 @@
   Ranges remain the authoritative numeric targets for historical comparison.
 - Do not make default missing Prescribed Run association fatal. The loud
   behavior is scoped to an explicit `--prescribed-run` override.
-- If the repetition-count cap or numerically comparable intensity classification
-  becomes a hard-to-reverse public grammar decision, document it in an ADR or
-  the cycle AAR before closing the parent.
+- [x] [#74 -> parent] Repetition-count cap (`MAX_REPEAT_COUNT = 20`) and
+  comparable-label classification (`NON_COMPARABLE_LABELS = {E, LR, REC}`)
+  are documented in ADR 0006. Resolved.
 - Pre-declared AAR deferrals for non-must-fix test gaps from the audit's "Test
   coverage gaps (Reliable bar)" list: interleaved arrow types (`A -> B → C`),
   `→` inside a repetition body, leading/trailing whitespace and lone-arrow

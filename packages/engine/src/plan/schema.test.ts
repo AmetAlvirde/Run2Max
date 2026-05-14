@@ -302,4 +302,65 @@ describe("parsePlan", () => {
       }),
     ).toThrow(/Invalid prescription notation/);
   });
+
+  it("throws when a comparable step is missing its Target Range during Plan loading", () => {
+    expect(() =>
+      parsePlan({
+        ...minimalPlan,
+        mesocycles: [
+          {
+            name: "CANAL",
+            fractals: [
+              {
+                weeks: [
+                  {
+                    planned: "L",
+                    start: "2026-05-04",
+                    prescribed_runs: [
+                      {
+                        local_date: "2026-05-06",
+                        label: "Threshold run",
+                        prescription: "1min @ E -> 3min @ T",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/Invalid prescription notation/);
+  });
+
+  it("does not reject a non-comparable easy step without a Target Range during Plan loading", () => {
+    const result = parsePlan({
+      ...minimalPlan,
+      mesocycles: [
+        {
+          name: "CANAL",
+          fractals: [
+            {
+              weeks: [
+                {
+                  planned: "L",
+                  start: "2026-05-04",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-05-06",
+                      label: "Easy run",
+                      prescription: "30min @ E",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const run = result.mesocycles[0]!.fractals[0]!.weeks[0]!.prescribedRuns?.[0];
+    expect(run?.steps).toHaveLength(1);
+    expect(run?.steps[0]?.intensityLabel).toBe("E");
+  });
 });

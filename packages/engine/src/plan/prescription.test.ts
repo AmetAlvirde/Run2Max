@@ -95,4 +95,68 @@ describe("parsePrescriptionNotation", () => {
 
     expect(result.diagnostics[0]?.code).toBe("unsupported");
   });
+
+  it("rejects a reversed Target Range with an invalid_target_range diagnostic", () => {
+    const result = parsePrescriptionNotation("1min @ T[234-205W]");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.diagnostics[0]?.code).toBe("invalid_target_range");
+    expect(result.diagnostics[0]?.token).toBe("1min @ T[234-205W]");
+  });
+
+  it("rejects a zero Target Range [0-0W] with an invalid_target_range diagnostic", () => {
+    const result = parsePrescriptionNotation("1min @ T[0-0W]");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.diagnostics[0]?.code).toBe("invalid_target_range");
+    expect(result.diagnostics[0]?.token).toBe("1min @ T[0-0W]");
+  });
+
+  it("rejects a zero distance step with an invalid_target_value diagnostic", () => {
+    const result = parsePrescriptionNotation("0K @ E[205-234W]");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.diagnostics[0]?.code).toBe("invalid_step_target");
+    expect(result.diagnostics[0]?.token).toBe("0K @ E[205-234W]");
+  });
+
+  it("rejects a zero duration step with an invalid_target_value diagnostic", () => {
+    const result = parsePrescriptionNotation("0min @ T[260-280W]");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.diagnostics[0]?.code).toBe("invalid_step_target");
+    expect(result.diagnostics[0]?.token).toBe("0min @ T[260-280W]");
+  });
+
+  it("rejects a repetition count over the v1 cap with a repetition_limit diagnostic", () => {
+    const result = parsePrescriptionNotation("51(1min @ E)");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+
+    expect(result.diagnostics[0]?.code).toBe("repeat_count_out_of_range");
+  });
+
+  describe("comparable mode (requireTargetRanges: 'comparable')", () => {
+    it("reports missing_target_range only for the comparable step in a mixed sequence", () => {
+      const result = parsePrescriptionNotation("1min @ E -> 3min @ T", {
+        requireTargetRanges: "comparable",
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      expect(result.diagnostics).toHaveLength(1);
+      expect(result.diagnostics[0]?.code).toBe("missing_target_range");
+      expect(result.diagnostics[0]?.token).toBe("3min @ T");
+    });
+  });
 });

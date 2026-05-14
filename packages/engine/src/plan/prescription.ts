@@ -1,7 +1,7 @@
 import type { PrescribedStep } from "./types.js";
 
 export interface PrescriptionDiagnostic {
-  code: "syntax" | "unsupported" | "missing_target_range";
+  code: "syntax" | "unsupported" | "missing_target_range" | "invalid_target_range" | "invalid_step_target" | "repeat_count_out_of_range";
   message: string;
   token?: string;
   offset?: number;
@@ -12,8 +12,19 @@ export type PrescriptionParseResult =
   | { ok: false; diagnostics: PrescriptionDiagnostic[] };
 
 export interface PrescriptionParseOptions {
-  requireTargetRanges?: boolean;
+  requireTargetRanges?: boolean | "comparable";
 }
+
+// v1 non-comparable intensity labels: easy/recovery steps that do not require
+// an inline Target Range in production Plan-loading mode.
+const NON_COMPARABLE_LABELS = new Set(["E", "LR", "REC"]);
+
+function isComparableLabel(label: string): boolean {
+  return !NON_COMPARABLE_LABELS.has(label);
+}
+
+// v1 cap: prevents typo-amplified expansion (e.g. 9999(...))
+const MAX_REPEAT_COUNT = 50;
 
 const STEP_PATTERN = /^(?<value>\d+(?:\.\d+)?)\s*(?<unit>K|min)\s*@\s*(?<label>[A-Za-z0-9-]+)(?:\s*\[(?<min>\d+)-(?<max>\d+)W\])?$/;
 const STEP_PATTERN_ANY_UNIT = /^(?<value>\d+(?:\.\d+)?)\s*(?<unit>[A-Za-z]+)\s*@\s*(?<label>[A-Za-z0-9-]+)(?:\s*\[(?<min>\d+)-(?<max>\d+)W\])?$/;
@@ -85,7 +96,12 @@ function parseStep(source: string, options?: PrescriptionParseOptions): ParseSte
   const unit = match.groups.unit;
   const hasRange = match.groups.min != null && match.groups.max != null;
 
-  if (options?.requireTargetRanges && !hasRange) {
+  const label = match.groups.label;
+  const requiresRange =
+    options?.requireTargetRanges === true ||
+    (options?.requireTargetRanges === "comparable" && isComparableLabel(label));
+
+  if (requiresRange && !hasRange) {
     return {
       ok: false,
       diagnostics: [
@@ -98,6 +114,50 @@ function parseStep(source: string, options?: PrescriptionParseOptions): ParseSte
     };
   }
 
+  if (value <= 0) {
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          code: "invalid_step_target",
+          message: "Distance or duration target must be greater than zero",
+          token: source,
+        },
+      ],
+    };
+  }
+
+  let parsedRange: { min: number; max: number } | undefined;
+  if (hasRange) {
+    const rangeMin = Number(match.groups.min);
+    const rangeMax = Number(match.groups.max);
+    if (rangeMin > rangeMax) {
+      return {
+        ok: false,
+        diagnostics: [
+          {
+            code: "invalid_target_range",
+            message: `Target Range min (${rangeMin}) is greater than max (${rangeMax})`,
+            token: source,
+          },
+        ],
+      };
+    }
+    if (rangeMin === 0 && rangeMax === 0) {
+      return {
+        ok: false,
+        diagnostics: [
+          {
+            code: "invalid_target_range",
+            message: "Target Range [0-0W] cannot match any positive power value",
+            token: source,
+          },
+        ],
+      };
+    }
+    parsedRange = { min: rangeMin, max: rangeMax };
+  }
+
   const target =
     unit === "min"
       ? ({ kind: "duration", value: Math.round(value * 60), unit: "seconds" } as const)
@@ -107,14 +167,9 @@ function parseStep(source: string, options?: PrescriptionParseOptions): ParseSte
     ok: true,
     step: {
       target,
-      intensityLabel: match.groups.label,
-      targetRange: hasRange
-        ? {
-            metric: "power",
-            min: Number(match.groups.min),
-            max: Number(match.groups.max),
-            unit: "W",
-          }
+      intensityLabel: label,
+      targetRange: parsedRange
+        ? { metric: "power", min: parsedRange.min, max: parsedRange.max, unit: "W" }
         : undefined,
       source,
     },
@@ -130,6 +185,19 @@ function parseSegment(segment: string, options?: PrescriptionParseOptions): Pars
   }
 
   const count = Number(repeatMatch.groups.count);
+  if (count > MAX_REPEAT_COUNT) {
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          code: "repeat_count_out_of_range",
+          message: `Repetition count ${count} exceeds the v1 limit of ${MAX_REPEAT_COUNT}`,
+          token: segment,
+        },
+      ],
+    };
+  }
+
   const patternSegments = splitTopLevel(repeatMatch.groups.inner.trim(), "/");
   if (patternSegments.some((part) => part.length === 0)) {
     return {

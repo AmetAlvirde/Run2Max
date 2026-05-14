@@ -7,3 +7,4 @@
 | 0003 | Split aggregation uses pre-bucketed input | product | accepted | Standardize shared aggregation on `aggregateBucket(bucket, config)` while keeping bucket discovery in each computation module. |
 | 0004 | Plan-status formatters live in engine formatters and remain engine-public | product | accepted | Keep plan-status rendering in `formatters/plan.ts` while continuing engine-surface exports for formatter consumers. |
 | 0005 | Prescribed Runs store expanded steps on the parsed Plan | product | accepted | Parse Prescription Notation during Plan parsing and store expanded ordered `PrescribedStep[]` on each `PrescribedRun` to avoid downstream reparsing. |
+| 0006 | Comparable intensity label classification and v1 repetition cap | product | accepted | Parser owns `NON_COMPARABLE_LABELS` (`E`, `LR`, `REC`); all other labels require a Target Range in comparable mode. `parsePlan` always uses comparable mode. Repetition cap is 20. |

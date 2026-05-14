@@ -106,7 +106,9 @@ export function parsePlan(raw: unknown): Plan {
         weeks: fractal.weeks.map((week) => ({
           ...week,
           prescribedRuns: week.prescribedRuns?.map((run) => {
-            const prescriptionParse = parsePrescriptionNotation(run.prescription);
+            const prescriptionParse = parsePrescriptionNotation(run.prescription, {
+              requireTargetRanges: "comparable",
+            });
             if (!prescriptionParse.ok) {
               const reason = prescriptionParse.diagnostics[0]?.message ?? "Invalid prescription";
               throw new Error(
