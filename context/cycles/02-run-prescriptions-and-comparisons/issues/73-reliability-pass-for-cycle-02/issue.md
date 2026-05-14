@@ -77,12 +77,14 @@
   Ranges remain the authoritative numeric targets for historical comparison.
 - Do not make default missing Prescribed Run association fatal. The loud
   behavior is scoped to an explicit `--prescribed-run` override.
-- [x] [#74 -> parent] Repetition-count cap (`MAX_REPEAT_COUNT = 20`) and
+- [x] [#74 -> parent] Repetition-count cap (`MAX_REPEAT_COUNT = 50`) and
   comparable-label classification (`NON_COMPARABLE_LABELS = {E, LR, REC}`)
   are documented in ADR 0006. Resolved.
-- Pre-declared AAR deferrals for non-must-fix test gaps from the audit's "Test
+- [x] Pre-declared AAR deferrals for non-must-fix test gaps from the audit's "Test
   coverage gaps (Reliable bar)" list: interleaved arrow types (`A -> B → C`),
   `→` inside a repetition body, leading/trailing whitespace and lone-arrow
   inputs (`"->"`, `"1.6K @ E ->"`), and an explicit
   fixture-without-`prescribed_runs` round-trip test. Resolve at closure with a
-  brief rationale rather than expanding sub-issue scope mid-flight.
+  brief rationale rather than expanding sub-issue scope mid-flight. Resolved in
+  `aar.md`; accepted as non-must-fix test debt outside the parent #73 closure
+  scope.

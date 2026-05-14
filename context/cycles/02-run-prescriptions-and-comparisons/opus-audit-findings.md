@@ -1,9 +1,11 @@
 # Cycle 02 — Reliability Pass Audit Findings (Opus)
 
-> Status: audit only. No fixes implemented. This document is the technical audit
-> deliverable for the Reliability Pass that takes cycle 02 from `Prototype` to
-> `Reliable`. It is not adversarial; code was written by peers. Modules with no
-> findings are reported as clean — that is success, not failure.
+> Status: resolved by parent #73. This document is the technical audit source
+> for the Reliability Pass that takes cycle 02 from `Prototype` to `Reliable`;
+> closure evidence lives in
+> `issues/73-reliability-pass-for-cycle-02/aar.md`. It is not adversarial; code
+> was written by peers. Modules with no findings are reported as clean -- that is
+> success, not failure.
 
 ## Scope
 
@@ -26,6 +28,13 @@ The Reliability Pass covers the whole cycle 02 boundary:
   ESM/CJS/DTS clean; cli ESM clean. No standalone `typecheck` script exists in
   this monorepo; the tsup DTS build is the proxy and both packages pass.
 - No failing tests, no flaky tests observed.
+
+Post-pass verification at parent #73 closure:
+
+- `pnpm test`: **PASS** -- 36 files passed, 1 skipped; 635 tests passed, 6
+  skipped.
+- `pnpm -r build`: **PASS** -- engine and CLI package builds completed; engine
+  DTS emitted successfully.
 
 ## Finding buckets
 
@@ -534,23 +543,20 @@ Files: `packages/engine/src/plan/{history,case-keys}.{ts,test.ts}`,
 
 ### ADR coverage
 
-- Only ADR 0005 exists for cycle 02. Two cycle-02 decisions deserve
-  documentation (see Parent #53 must-fix #6 and the undocumented decisions block
-  above): (a) eager plan-load throw versus per-Week diagnostic collection; (b)
-  binary `requireTargetRanges` flag versus "numerically comparable"
-  classification.
+- Resolved by parent #73: ADR 0006 documents comparable intensity label
+  classification and the v1 repetition cap; ADR 0007 documents eager
+  `parsePlan` throws via typed `PrescriptionNotationError` rather than a result
+  type.
 
 ---
 
 ## Closure-evidence checklist (post-Reliable-Pass)
 
-Items to record in the cycle close-out once the must-fix list is resolved (or
-accepted with rationale):
+Resolved in parent #73 closure:
 
-- Must-fix findings resolved or explicitly deferred with rationale
-- Audit-driven refactors scoped to behavior preservation
-- `pnpm test` green after refactor (currently green at audit time)
-- `pnpm -r build` (DTS) green after refactor (currently green)
-- ADRs added for the two undocumented decisions, or explicit AAR note that they
-  are not consequential enough
-- AAR section "Reliability Pass" populated per the layer skill template
+- Must-fix findings resolved by sub-issues #74 through #77.
+- Audit-driven refactors were scoped to behavior preservation and owning seams.
+- `pnpm test` green after refactor.
+- `pnpm -r build` (DTS) green after refactor.
+- ADRs 0006 and 0007 added for the two consequential decisions.
+- Parent #73 AAR and cycle AAR record the Reliability Pass evidence.
