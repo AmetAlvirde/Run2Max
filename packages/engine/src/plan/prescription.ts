@@ -4,7 +4,16 @@ export interface PrescriptionDiagnostic {
   code: "syntax" | "unsupported" | "missing_target_range" | "invalid_target_range" | "invalid_step_target" | "repeat_count_out_of_range";
   message: string;
   token?: string;
-  offset?: number;
+}
+
+export class PrescriptionNotationError extends Error {
+  readonly diagnostics: ReadonlyArray<PrescriptionDiagnostic>;
+
+  constructor(diagnostics: ReadonlyArray<PrescriptionDiagnostic>, message?: string) {
+    super(message ?? `Prescription notation error (${diagnostics.length} diagnostic(s))`);
+    this.name = "PrescriptionNotationError";
+    this.diagnostics = diagnostics;
+  }
 }
 
 export type PrescriptionParseResult =
@@ -215,6 +224,18 @@ function parseSegment(segment: string, options?: PrescriptionParseOptions): Pars
   const patternSteps: Omit<PrescribedStep, "index">[] = [];
 
   for (const patternSegment of patternSegments) {
+    if (REPEAT_PATTERN.exec(patternSegment)) {
+      return {
+        ok: false,
+        diagnostics: [
+          {
+            code: "unsupported",
+            message: "Nested repetition is not supported",
+            token: patternSegment,
+          },
+        ],
+      };
+    }
     const parsedStep = parseStep(patternSegment, options);
     if (!parsedStep.ok) return parsedStep;
     patternSteps.push(parsedStep.step);
@@ -263,10 +284,13 @@ export function parsePrescriptionNotation(
   }
 
   const steps: PrescribedStep[] = [];
+  const allDiagnostics: PrescriptionDiagnostic[] = [];
+
   for (const segment of segments) {
     const parsed = parseSegment(segment, options);
     if (!parsed.ok) {
-      return parsed;
+      allDiagnostics.push(...parsed.diagnostics);
+      continue;
     }
 
     for (const parsedStep of parsed.steps) {
@@ -275,6 +299,10 @@ export function parsePrescriptionNotation(
         ...parsedStep,
       });
     }
+  }
+
+  if (allDiagnostics.length > 0) {
+    return { ok: false, diagnostics: allDiagnostics };
   }
 
   return {

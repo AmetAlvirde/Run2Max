@@ -7,6 +7,7 @@ import {
   REASON_CATEGORIES,
   KNOWN_DISTANCES,
 } from "./schema.js";
+import { PrescriptionNotationError } from "./prescription.js";
 
 const minimalPlan = {
   schema_version: 1,
@@ -271,6 +272,74 @@ describe("parsePlan", () => {
     expect(run?.comparisonGroup).toBe("sub-t-3min");
     expect(run?.steps).toHaveLength(9);
     expect(run?.steps[0]?.target).toEqual({ kind: "distance", value: 1.6, unit: "km" });
+  });
+
+  it("throws PrescriptionNotationError with structured diagnostics for invalid notation", () => {
+    expect(() =>
+      parsePlan({
+        ...minimalPlan,
+        mesocycles: [
+          {
+            name: "CANAL",
+            fractals: [
+              {
+                weeks: [
+                  {
+                    planned: "L",
+                    start: "2026-05-04",
+                    prescribed_runs: [
+                      {
+                        local_date: "2026-05-06",
+                        label: "Broken run",
+                        prescription: "4(3min @ SUB-T[260-280W]/)",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(PrescriptionNotationError);
+  });
+
+  it("preserves diagnostic code and token in PrescriptionNotationError from parsePlan", () => {
+    let caught: unknown;
+    try {
+      parsePlan({
+        ...minimalPlan,
+        mesocycles: [
+          {
+            name: "CANAL",
+            fractals: [
+              {
+                weeks: [
+                  {
+                    planned: "L",
+                    start: "2026-05-04",
+                    prescribed_runs: [
+                      {
+                        local_date: "2026-05-06",
+                        label: "Threshold run",
+                        prescription: "1min @ E -> 3min @ T",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PrescriptionNotationError);
+    const err = caught as PrescriptionNotationError;
+    expect(err.diagnostics.length).toBeGreaterThan(0);
+    expect(err.diagnostics[0]?.code).toBe("missing_target_range");
+    expect(err.diagnostics[0]?.token).toBe("3min @ T");
   });
 
   it("throws when a prescribed run has invalid notation", () => {

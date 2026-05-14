@@ -159,4 +159,53 @@ describe("parsePrescriptionNotation", () => {
       expect(result.diagnostics[0]?.token).toBe("3min @ T");
     });
   });
+
+  describe("nested repetition", () => {
+    it("reports unsupported for a nested repetition group", () => {
+      const result = parsePrescriptionNotation("2(3min @ E/2(1min @ T))");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      expect(result.diagnostics[0]?.code).toBe("unsupported");
+      expect(result.diagnostics[0]?.token).toBe("2(1min @ T)");
+    });
+
+    it("valid nested-free repetition still parses successfully", () => {
+      const result = parsePrescriptionNotation("3(1min @ T[260-280W]/1min @ E)");
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      expect(result.steps).toHaveLength(6);
+    });
+  });
+
+  describe("multiple independent diagnostics", () => {
+    it("collects diagnostics from all independent failing top-level steps", () => {
+      const result = parsePrescriptionNotation(
+        "0K @ E[205-234W] -> bad -> 0min @ T[260-280W]",
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      expect(result.diagnostics.length).toBeGreaterThanOrEqual(2);
+      const codes = result.diagnostics.map((d) => d.code);
+      expect(codes).toContain("invalid_step_target");
+      expect(codes).toContain("syntax");
+    });
+  });
+
+  describe("PrescriptionDiagnostic shape", () => {
+    it("diagnostic does not include an offset field", () => {
+      const result = parsePrescriptionNotation("bad");
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+
+      const diag = result.diagnostics[0]!;
+      expect(diag).not.toHaveProperty("offset");
+    });
+  });
 });

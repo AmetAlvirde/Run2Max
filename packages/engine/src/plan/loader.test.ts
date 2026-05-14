@@ -3,6 +3,7 @@ import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadPlan, loadUserTemplates, resolveTemplate } from "./loader.js";
+import { PrescriptionNotationError } from "./prescription.js";
 import type { PlanTemplate } from "./templates/types.js";
 
 async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
@@ -54,6 +55,41 @@ describe("loadPlan", () => {
       await writeFile(filePath, "block: {\n  bad yaml: [unclosed", "utf-8");
 
       await expect(loadPlan(filePath)).rejects.toThrow(/Failed to parse/);
+    });
+  });
+
+  it("throws PrescriptionNotationError with file path for invalid prescription", async () => {
+    await withTempDir(async (dir) => {
+      const filePath = join(dir, "plan.yaml");
+      const yaml = `
+schema_version: 1
+block: build
+start: 2026-05-04
+mesocycles:
+  - name: CANAL
+    fractals:
+      - weeks:
+          - planned: L
+            start: 2026-05-04
+            prescribed_runs:
+              - local_date: 2026-05-06
+                label: Threshold run
+                prescription: "1min @ E -> 3min @ T"
+`;
+      await writeFile(filePath, yaml, "utf-8");
+
+      let caught: unknown;
+      try {
+        await loadPlan(filePath);
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught).toBeInstanceOf(PrescriptionNotationError);
+      const err = caught as PrescriptionNotationError;
+      expect(err.message).toContain(filePath);
+      expect(err.diagnostics.length).toBeGreaterThan(0);
+      expect(err.diagnostics[0]?.code).toBe("missing_target_range");
     });
   });
 
