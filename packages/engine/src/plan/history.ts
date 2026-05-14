@@ -288,8 +288,8 @@ export async function readHistoryArtifacts(
   const fitBasenames = Array.from(
     new Set(
       entries
-        .filter((entry) => entry.endsWith(".fit"))
-        .map((entry) => entry.slice(0, -4))
+        .filter((entry) => /\.fit$/i.test(entry))
+        .map((entry) => entry.replace(/\.fit$/i, ""))
         .filter((basename) => basename !== options.currentFitBasename),
     ),
   ).sort();

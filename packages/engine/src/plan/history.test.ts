@@ -498,4 +498,104 @@ describe("readHistoryArtifacts", () => {
     const engine = await import("../index.js");
     expect(typeof engine.readHistoryArtifacts).toBe("function");
   });
+
+  describe("FIT extension case-insensitivity", () => {
+    it("excludes current run when on-disk entry uses uppercase .FIT extension", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.FIT": "",
+          "run-1.yaml": [
+            "captured_date: 2026-05-01",
+            "comparison_group: Tuesday Intervals",
+            "prescription_comparison:",
+            "  actual:",
+            "    duration: 3600",
+            "    distance: 10000",
+            "    avg_power: 250",
+            "    avg_heart_rate: 162",
+            "    max_heart_rate: 178",
+            "    avg_pace: 300",
+            "    rpe: 7",
+          ].join("\n"),
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-1",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.topLevelReason).toBe("no_candidates");
+        expect(report.candidates).toHaveLength(0);
+      });
+    });
+
+    it("discovers prior run with uppercase .FIT alongside current run", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.FIT": "",
+          "run-1.json": validJsonArtifact({ capturedDate: "2026-04-20" }),
+          "run-2.FIT": "",
+          "run-2.json": validJsonArtifact({ capturedDate: "2026-05-01" }),
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates).toHaveLength(1);
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          fitBasename: "run-1",
+        });
+      });
+    });
+
+    it("discovers prior run with mixed-case .FiT extension", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.FiT": "",
+          "run-1.json": validJsonArtifact({ capturedDate: "2026-04-20" }),
+          "run-2.fit": "",
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates).toHaveLength(1);
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          fitBasename: "run-1",
+        });
+      });
+    });
+
+    it("lowercase .fit exclusion of current run remains unchanged", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.fit": "",
+          "run-1.json": validJsonArtifact({ capturedDate: "2026-04-20" }),
+          "run-2.fit": "",
+          "run-2.json": validJsonArtifact({ capturedDate: "2026-05-01" }),
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates).toHaveLength(1);
+        expect(report.candidates[0]).toMatchObject({
+          fitBasename: "run-1",
+          status: "eligible",
+        });
+      });
+    });
+  });
 });
