@@ -8,15 +8,30 @@ const {
   mockReadFile,
   mockStat,
   mockWriteFile,
-} = vi.hoisted(() => ({
-  mockLoadConfig: vi.fn(),
-  mockLoadPlan: vi.fn(),
-  mockQuantify: vi.fn(),
-  mockFormatResult: vi.fn(),
-  mockReadFile: vi.fn(),
-  mockStat: vi.fn(),
-  mockWriteFile: vi.fn(),
-}));
+  MockPrescribedRunOverrideError,
+} = vi.hoisted(() => {
+  class MockPrescribedRunOverrideError extends Error {
+    reason: string;
+    override: Record<string, string>;
+    constructor(reason: string, override: Record<string, string>) {
+      super(`Prescribed run override failed: ${reason}`);
+      this.name = "PrescribedRunOverrideError";
+      this.reason = reason;
+      this.override = override;
+    }
+  }
+
+  return {
+    mockLoadConfig: vi.fn(),
+    mockLoadPlan: vi.fn(),
+    mockQuantify: vi.fn(),
+    mockFormatResult: vi.fn(),
+    mockReadFile: vi.fn(),
+    mockStat: vi.fn(),
+    mockWriteFile: vi.fn(),
+    MockPrescribedRunOverrideError,
+  };
+});
 
 vi.mock("@run2max/engine", () => ({
   loadConfig: mockLoadConfig,
@@ -29,6 +44,7 @@ vi.mock("@run2max/engine", () => ({
   reportHasAnomalies: vi.fn().mockReturnValue(false),
   walkPlan: vi.fn().mockReturnValue([]),
   addDays: vi.fn().mockReturnValue("2099-01-08"),
+  PrescribedRunOverrideError: MockPrescribedRunOverrideError,
 }));
 
 vi.mock("node:fs/promises", () => ({
@@ -189,5 +205,59 @@ describe("quantify command prescribed-run override", () => {
       fitDirPath: "/tmp/subdir",
       currentFitBasename: "run-2026-04-12",
     });
+  });
+
+  it("exits non-zero with reason in message when quantify throws PrescribedRunOverrideError (ambiguous)", async () => {
+    mockQuantify.mockRejectedValueOnce(
+      new MockPrescribedRunOverrideError("ambiguous", { overrideLabel: "Wednesday Intervals" }),
+    );
+
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(((code?: string | number | null | undefined) => {
+        throw new Error(`EXIT:${code}`);
+      }) as never);
+
+    await expect(
+      command.run?.({
+        args: {
+          file: "/tmp/run.fit",
+          format: "md",
+          "exclude-anomalies": false,
+          "no-weather": false,
+          "prescribed-run": "Wednesday Intervals",
+        },
+      }),
+    ).rejects.toThrow("EXIT:1");
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("ambiguous"),
+    );
+  });
+
+  it("does not write formatted output after PrescribedRunOverrideError", async () => {
+    mockQuantify.mockRejectedValueOnce(
+      new MockPrescribedRunOverrideError("no_prescribed_run", { overrideDate: "2026-04-15" }),
+    );
+
+    vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null | undefined) => {
+      throw new Error(`EXIT:${code}`);
+    }) as never);
+
+    await expect(
+      command.run?.({
+        args: {
+          file: "/tmp/run.fit",
+          format: "md",
+          "exclude-anomalies": false,
+          "no-weather": false,
+          "prescribed-run": "date:2026-04-15",
+        },
+      }),
+    ).rejects.toThrow("EXIT:1");
+
+    expect(mockFormatResult).not.toHaveBeenCalled();
+    expect(process.stdout.write).not.toHaveBeenCalled();
   });
 });

@@ -15,7 +15,7 @@ import type {
   KmSplitRow,
 } from "../types.js";
 import { ENGINE_VERSION } from "../index.js";
-import { associateRun, findPrescribedRun, scanBlockRuns } from "../plan/associate.js";
+import { associateRun, findPrescribedRun, scanBlockRuns, PrescribedRunOverrideError } from "../plan/associate.js";
 import { readHistoryArtifacts } from "../plan/history.js";
 import { detectCapabilities } from "../detect-capabilities.js";
 import { detectAnomalies, applyAnomalyExclusions } from "./anomalies.js";
@@ -152,6 +152,13 @@ export async function quantify(
       timezone,
       options.prescribedRunOverride,
     );
+
+    if (!prescribedAssoc.ok && options.prescribedRunOverride) {
+      throw new PrescribedRunOverrideError(
+        prescribedAssoc.reason,
+        options.prescribedRunOverride,
+      );
+    }
 
     if (prescribedAssoc.ok) {
       const { prescribedRun, weekContext, matchKind } = prescribedAssoc.match;

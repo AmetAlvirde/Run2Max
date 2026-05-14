@@ -43,7 +43,7 @@ export type {
 // Runs and capture
 // ---------------------------------------------------------------------------
 
-export { scanBlockRuns, findPrescribedRun } from "./plan/associate.js";
+export { scanBlockRuns, findPrescribedRun, PrescribedRunOverrideError } from "./plan/associate.js";
 export type {
   FindPrescribedRunOptions,
   FindPrescribedRunReason,

@@ -46,6 +46,16 @@ export type FindPrescribedRunResult =
   | { ok: true; match: PrescribedRunMatch }
   | { ok: false; reason: FindPrescribedRunReason };
 
+export class PrescribedRunOverrideError extends Error {
+  constructor(
+    public readonly reason: FindPrescribedRunReason,
+    public readonly override: FindPrescribedRunOptions,
+  ) {
+    super(`Prescribed run override failed: ${reason}`);
+    this.name = "PrescribedRunOverrideError";
+  }
+}
+
 /**
  * Converts a UTC Date to a local ISO date string (YYYY-MM-DD) in the given
  * timezone. Uses the "en-CA" locale which produces ISO 8601 date format.

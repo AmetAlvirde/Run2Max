@@ -378,6 +378,60 @@ describe("findPrescribedRun", () => {
       expect(result.match.matchKind).toBe("override");
     }
   });
+
+  it("does not produce ambiguity when another week has a prescribed run with the same localDate string", () => {
+    const plan = parsePlan({
+      schema_version: 1,
+      block: "build",
+      goal: "Test",
+      start: "2026-05-04",
+      mesocycles: [
+        {
+          name: "CANAL",
+          fractals: [
+            {
+              weeks: [
+                {
+                  planned: "L",
+                  start: "2026-05-04",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-05-06",
+                      label: "Tuesday Intervals",
+                      prescription: "3min @ SUB-T[260-280W]",
+                    },
+                  ],
+                },
+                {
+                  planned: "LL",
+                  start: "2026-05-11",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-05-06",
+                      label: "Duplicate Date In Another Week",
+                      prescription: "3min @ E",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = findPrescribedRun(
+      plan,
+      new Date("2026-05-06T12:00:00Z"),
+      "UTC",
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.match.prescribedRun.label).toBe("Tuesday Intervals");
+      expect(result.match.weekContext.week.start).toBe("2026-05-04");
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
