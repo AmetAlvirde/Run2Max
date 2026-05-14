@@ -17,6 +17,7 @@ vi.mock("normalize-fit-file", () => ({
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import { quantify } from "./quantify.js";
 import { parsePlan } from "../plan/schema.js";
+import { PrescribedRunOverrideError } from "../plan/associate.js";
 
 const BASE_TIME = new Date("2026-04-12T08:00:00Z");
 function ms(seconds: number): Date {
@@ -213,7 +214,7 @@ describe("quantify", () => {
     expect(result.capabilities.hasStrydEnhanced).toBe(true);
 
     // Metadata version
-    expect(result.metadata.version).toBe("2.0.0");
+    expect(result.metadata.version).toBe("2.1.0");
 
     // Anomalies (first 3 records have HR=0)
     expect(result.anomalies.length).toBeGreaterThan(0);
@@ -667,5 +668,101 @@ describe("quantify", () => {
     expect(result.prescribedRunContext?.matchKind).toBe("override");
     expect(result.prescribedRunContext?.label).toBe("Monday Tempo");
     expect(result.prescribedRunContext?.weekNumber).toBe(2);
+  });
+
+  it("throws PrescribedRunOverrideError with no_prescribed_run when explicit date override matches nothing", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns();
+    await expect(
+      quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        prescribedRunOverride: { overrideDate: "2026-04-15" },
+      }),
+    ).rejects.toThrow(PrescribedRunOverrideError);
+
+    await expect(
+      quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        prescribedRunOverride: { overrideDate: "2026-04-15" },
+      }),
+    ).rejects.toMatchObject({ reason: "no_prescribed_run" });
+  });
+
+  it("throws PrescribedRunOverrideError with ambiguous when explicit label override matches multiple runs", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = parsePlan({
+      schema_version: 1,
+      block: "build",
+      goal: "Half Marathon Santiago",
+      start: "2026-04-06",
+      mesocycles: [
+        {
+          name: "CANAL",
+          fractals: [
+            {
+              weeks: [
+                {
+                  planned: "L",
+                  start: "2026-04-06",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-04-12",
+                      label: "Sunday Endurance",
+                      prescription: "30min @ E",
+                    },
+                  ],
+                },
+                {
+                  planned: "LL",
+                  start: "2026-04-13",
+                  prescribed_runs: [
+                    {
+                      local_date: "2026-04-13",
+                      label: "Sunday Endurance",
+                      prescription: "30min @ E",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    await expect(
+      quantify(new ArrayBuffer(0), {
+        config: CONFIG,
+        plan,
+        timezone: "UTC",
+        prescribedRunOverride: { overrideLabel: "Sunday Endurance" },
+      }),
+    ).rejects.toMatchObject({ reason: "ambiguous" });
+  });
+
+  it("does not throw when no override is supplied and association fails — default failure is non-fatal", async () => {
+    const normalized = buildNormalizedData(20);
+    vi.mocked(parseFitBuffer).mockResolvedValue({} as never);
+    vi.mocked(normalizeFFP).mockReturnValue(normalized as never);
+
+    const plan = makePlanWithPrescribedRuns({ firstWeekDate: "2026-04-11" });
+    const result = await quantify(new ArrayBuffer(0), {
+      config: CONFIG,
+      plan,
+      timezone: "UTC",
+    });
+
+    expect(result.prescribedRunContext).toBeUndefined();
+    expect(result.prescriptionComparison).toBeUndefined();
   });
 });

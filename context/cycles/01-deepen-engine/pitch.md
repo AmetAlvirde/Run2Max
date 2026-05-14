@@ -1,6 +1,6 @@
 Problem: The engine grew shallow — Plan tree walks, tier-aware split aggregation, presentation, and date math are duplicated or leaked across modules, so every new feature touches four files instead of one and a documented `TS2589` workaround sits in the CLI as evidence of the type-layer drift.
 
-Who: Future maintainers extending `@run2max/engine` and the CLI — the same hands that will add the next periodization, analytics, or sync feature on top of v2.0.0.
+Who: Future maintainers extending `@run2max/engine` and the CLI — the same hands that will add the next periodization, analytics, or sync feature on top of the v2 engine surface.
 
 Gap: The current shape works, but the seams it exposes (50+ engine exports, five inline `flattenWeeks`, three near-identical row builders for segments / km splits / dynamics, formatters living inside `plan/status.ts`, `v.InferOutput` chains crossing module boundaries) make each new feature pay an integration tax that compounds. The codebase is correct but not leverageable.
 

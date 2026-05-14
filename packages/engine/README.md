@@ -20,6 +20,8 @@ import {
   // periodization and plan flow
   REASON_CATEGORIES,
   loadPlan,
+  parsePrescriptionNotation,
+  PrescriptionNotationError,
   resolvePlanTemplate,
   listPlanTemplates,
   buildPlanFromTemplate,
@@ -32,15 +34,27 @@ import {
   adjustPlan,
   AdjustError,
   walkPlan,
+  readHistoryArtifacts,
   // run association
   scanBlockRuns,
+  findPrescribedRun,
+  PrescribedRunOverrideError,
   validatePlan,
+  comparePrescriptionToSegments,
+  computeComparableHistoryDelta,
 } from "@run2max/engine";
 import type {
   OutputFormat,
   OutputProfileConfig,
   MicrocycleConfig,
   Plan,
+  PrescribedRun,
+  PrescribedStep,
+  PrescriptionDiagnostic,
+  PrescriptionComparison,
+  ComparableHistory,
+  HistoryArtifactReport,
+  FindPrescribedRunResult,
   TestingPeriod,
   Diagnostic,
   DeviationReport,
@@ -48,8 +62,9 @@ import type {
 } from "@run2max/engine";
 ```
 
-Low-level computation helpers and parser internals are intentionally not part of
-the public surface.
+The public surface includes the core `quantify` pipeline plus selected plan,
+association, prescription-comparison, and comparable-history helpers that are
+stable enough for CLI and other access-surface consumers.
 
 ### `quantify(fitBuffer, options?)`
 
@@ -93,7 +108,7 @@ or set `weather: false` in config to disable.
 | `capabilities`         | `hasRunningDynamics`, `hasStrydEnhanced`                                       |
 | `planContext`          | Plan week context when a Plan is loaded (always forwarded, not profile-gated)  |
 | `prescribedRunContext` | Matched Prescribed Run metadata when association succeeds                      |
-| `prescriptionComparison` | Single-Run Prescription Comparison (available or unavailable) when matched  |
+| `prescriptionComparison` | Single-Run Prescription Comparison when matched; available comparisons may include Comparable-History Deltas |
 
 ### `loadConfig(options?)`
 
@@ -162,11 +177,55 @@ const fullView = formatPlanStatus(status, { view: "full" });
 
 Reads a `plan.yaml` from disk, transforms snake_case keys to camelCase, and
 parses it against the plan schema. Throws with a descriptive message on missing
-file, invalid YAML, or schema failure.
+file, invalid YAML, schema failure, or invalid Prescription Notation. Invalid
+Prescription Notation is reported as `PrescriptionNotationError` with structured
+diagnostics and file-path context.
 
 ```ts
 const plan = await loadPlan("./plan.yaml");
 ```
+
+### Prescription Notation and Prescribed Runs
+
+Plans may define optional `prescribed_runs` under each Week. `loadPlan` expands
+each authored prescription into ordered `PrescribedStep[]` values on the parsed
+Plan.
+
+```yaml
+prescribed_runs:
+  - local_date: "2026-05-12"
+    label: "Tuesday Intervals"
+    comparison_group: "sub-threshold-3min"
+    prescription: "1.6K @ E -> 4(3min @ SUB-T[260-280W]/1min @ E) -> 1.6K @ E"
+```
+
+`parsePrescriptionNotation` supports v1 distance and duration steps, repeated
+groups, ASCII `->` and Unicode `→` separators, intensity labels, and inline power
+Target Ranges. Production Plan loading requires Target Ranges for numerically
+comparable labels and uses `E`, `LR`, and `REC` as the v1 non-comparable label
+set. Repetition count is capped at 50.
+
+### Prescribed Run Association and Comparison
+
+`findPrescribedRun` matches a captured Run to a Prescribed Run by local date by
+default, or by explicit override date/label. `quantify` throws
+`PrescribedRunOverrideError` when an explicit override fails; default association
+misses remain non-fatal.
+
+When association succeeds, `quantify` compares lap-derived Segment rows to the
+Prescribed Steps by order. The result is available when usable laps match the
+prescription step count, otherwise it reports a structured unavailable reason.
+
+### Comparable History
+
+`readHistoryArtifacts` discovers prior detailed YAML/JSON Analysis Artifacts in
+the same Block directory, paired to FIT files by basename and filtered to the
+same Comparison Group. FIT extension matching is case-insensitive, so the current
+Run is excluded even when the file is named with `.FIT` or mixed-case `.FiT`.
+
+`computeComparableHistoryDelta` compares available current and prior evidence for
+avg power, avg/max heart rate, avg pace, and run-level RPE. These deltas are
+attached under `prescriptionComparison.comparableHistory` when available.
 
 ### `resolvePlanTemplate(name, options?)`
 
@@ -279,10 +338,12 @@ output:
         summary,
         elevation_profile,
         weather,
+        segments,
         km_splits,
         zones,
         dynamics,
         anomalies,
+        prescription_comparison,
         metadata,
       ]
     columns: [power, zone, pace, hr, cadence, elev_gain, elev_loss, wind, temp]

@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { parsePlan } from "./schema.js";
+import { PrescriptionNotationError } from "./prescription.js";
 import type { Plan } from "./types.js";
 import type { PlanTemplate } from "./templates/types.js";
 import { getBuiltinTemplate } from "./templates/builtin.js";
@@ -36,6 +37,12 @@ export async function loadPlan(filePath: string): Promise<Plan> {
         })
         .join("\n");
       throw new Error(`Invalid plan at ${filePath}:\n${issues}`);
+    }
+    if (err instanceof PrescriptionNotationError) {
+      throw new PrescriptionNotationError(
+        err.diagnostics,
+        `${err.message} (${filePath})`,
+      );
     }
     throw err;
   }

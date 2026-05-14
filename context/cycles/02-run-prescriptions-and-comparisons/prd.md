@@ -3,7 +3,7 @@
 > High-level PRD for the next user-facing feature cycle. Sub-PRDs and parent
 > issues will live in this cycle's folder alongside this document.
 >
-> Status: open. Cycle AAR and decision are pending.
+> Status: closed. Cycle decision: new feature. Final Assurance Level: Reliable.
 
 ## Focus
 

@@ -1,4 +1,4 @@
-export const ENGINE_VERSION = "2.0.0";
+export const ENGINE_VERSION = "2.1.0";
 
 // ---------------------------------------------------------------------------
 // Periodization
@@ -17,7 +17,8 @@ export type {
 export { validatePlan } from "./plan/validate.js";
 export type { Diagnostic } from "./plan/validate.js";
 export { loadPlan } from "./plan/loader.js";
-export { parsePrescriptionNotation } from "./plan/prescription.js";
+export { parsePrescriptionNotation, PrescriptionNotationError } from "./plan/prescription.js";
+export type { PrescriptionDiagnostic } from "./plan/prescription.js";
 export { resolvePlanTemplate, listPlanTemplates } from "./plan/templates/lookup.js";
 export { buildPlanFromTemplate } from "./plan/build.js";
 export { reconcile } from "./plan/reconcile.js";
@@ -42,7 +43,7 @@ export type {
 // Runs and capture
 // ---------------------------------------------------------------------------
 
-export { scanBlockRuns, findPrescribedRun } from "./plan/associate.js";
+export { scanBlockRuns, findPrescribedRun, PrescribedRunOverrideError } from "./plan/associate.js";
 export type {
   FindPrescribedRunOptions,
   FindPrescribedRunReason,

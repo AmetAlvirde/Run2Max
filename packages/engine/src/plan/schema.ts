@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import type { Plan } from "./types.js";
 import { transformKeysSnakeToCamel } from "./case-keys.js";
-import { parsePrescriptionNotation } from "./prescription.js";
+import { parsePrescriptionNotation, PrescriptionNotationError } from "./prescription.js";
 
 export const PLANNED_WEEK_TYPES = ["L", "LL", "LLL", "D", "Ta", "Tb", "P", "R", "N"] as const;
 export const EXECUTED_ONLY_TYPES = ["INC", "DNF"] as const;
@@ -106,10 +106,13 @@ export function parsePlan(raw: unknown): Plan {
         weeks: fractal.weeks.map((week) => ({
           ...week,
           prescribedRuns: week.prescribedRuns?.map((run) => {
-            const prescriptionParse = parsePrescriptionNotation(run.prescription);
+            const prescriptionParse = parsePrescriptionNotation(run.prescription, {
+              requireTargetRanges: "comparable",
+            });
             if (!prescriptionParse.ok) {
               const reason = prescriptionParse.diagnostics[0]?.message ?? "Invalid prescription";
-              throw new Error(
+              throw new PrescriptionNotationError(
+                prescriptionParse.diagnostics,
                 `Invalid prescription notation for prescribed run '${run.label}' on ${run.localDate}: ${reason}`,
               );
             }

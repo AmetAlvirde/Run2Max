@@ -12,6 +12,7 @@ import {
   reportHasAnomalies,
   walkPlan,
   addDays,
+  PrescribedRunOverrideError,
 } from "@run2max/engine";
 import type { OutputFormat, OutputProfileConfig, Plan, MicrocycleConfig } from "@run2max/engine";
 
@@ -310,6 +311,14 @@ export default defineCommand({
         currentFitBasename,
       });
     } catch (err) {
+      if (err instanceof PrescribedRunOverrideError) {
+        const selector = err.override.overrideDate
+          ? `date:${err.override.overrideDate}`
+          : `label:${err.override.overrideLabel}`;
+        fatal(
+          `--prescribed-run "${selector}" failed (${err.reason}): no matching run found in plan`,
+        );
+      }
       fatal(
         `Could not parse "${args.file}" — expected a valid .fit file: ${(err as Error).message}`,
       );
