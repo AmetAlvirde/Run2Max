@@ -2,7 +2,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  computeRunComparison,
+  type RunComparisonSide,
+} from "../computations/run-comparison.js";
 import { DEFAULT_PROFILE, formatResult } from "../formatters/index.js";
+import { formatRunComparison } from "../formatters/run-comparison.js";
 import type { AnalysisResult, OutputFormat } from "../types.js";
 import { loadRunComparisonSide } from "./run-comparison.js";
 
@@ -173,5 +178,67 @@ describe.each(FORMATS)("loadRunComparisonSide round-trip (%s)", (format) => {
     );
 
     expect(side.performance.rpe).toBe(9);
+  });
+});
+
+// End-to-end degradation: load → compute → format. This replaces the
+// prototype's hand-stripped awk no-weather demo artifact with a proper fixture
+// built through the real analysis writers, so the per-metric degradation story
+// is exercised across the whole pipeline (not just the extractor).
+
+/** Load two serialized artifacts and render the full Run Comparison markdown. */
+async function compareArtifacts(
+  baselineResult: AnalysisResult,
+  comparandResult: AnalysisResult,
+): Promise<string> {
+  let output!: string;
+  await withTempDir(async (dir) => {
+    const basePath = join(dir, "baseline.yaml");
+    const cmpPath = join(dir, "comparand.yaml");
+    await writeFile(
+      basePath,
+      formatResult(baselineResult, "yaml", DEFAULT_PROFILE).output,
+      "utf-8",
+    );
+    await writeFile(
+      cmpPath,
+      formatResult(comparandResult, "yaml", DEFAULT_PROFILE).output,
+      "utf-8",
+    );
+    const baseline: RunComparisonSide = await loadRunComparisonSide(basePath, "baseline");
+    const comparand: RunComparisonSide = await loadRunComparisonSide(cmpPath, "comparand");
+    output = formatRunComparison(computeRunComparison(baseline, comparand));
+  });
+  return output;
+}
+
+describe("Run Comparison end-to-end degradation (load → compute → format)", () => {
+  it("degrades conditions per-metric when the comparand has no weather", async () => {
+    const output = await compareArtifacts(
+      buildResult(),
+      buildResult({ weatherSummary: null }),
+    );
+
+    // Performance is unaffected by the missing weather section.
+    expect(output).toContain("Avg Power");
+    expect(output).toMatch(/Avg Power .*\| .*250 W .*\| .*250 W .*\| .*0 W/);
+
+    // Weather-dependent conditions report as missing on the comparand only.
+    expect(output).toContain("n/a (missing comparand)");
+    // Total Ascent survives because it comes from elevationProfile, present on both.
+    expect(output).toMatch(/Total Ascent .*\| .*120 m .*\| .*120 m .*\| .*0 m/);
+    // The whole comparison does not collapse to unavailable.
+    expect(output).not.toContain("missing both");
+  });
+
+  it("reports missing-both when neither side has weather", async () => {
+    const output = await compareArtifacts(
+      buildResult({ weatherSummary: null }),
+      buildResult({ weatherSummary: null }),
+    );
+
+    expect(output).toContain("n/a (missing both)");
+    // Performance still renders.
+    expect(output).toContain("Avg Power");
   });
 });

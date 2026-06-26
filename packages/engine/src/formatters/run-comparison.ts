@@ -22,47 +22,89 @@ import {
 type AbsFmt = (v: number) => string;
 type DeltaFmt = (v: number) => string;
 
+// Rounding/sign-normalization policy.
+//
+// The engine emits exact raw numbers, but the formatter rounds them for
+// display. A delta rendered straight off the raw numbers can contradict the
+// rounded absolutes it sits next to (e.g. absolutes that both render "0 C"
+// showing a "+1 C" delta, or a "−0 C" delta). To keep the rendered report
+// internally consistent, every delta is computed from the *displayed* values:
+//
+//   delta = display(comparand) − display(baseline)
+//
+// where `display` quantizes a raw value to the same resolution its absolute
+// formatter shows. This makes two guarantees fall out by construction:
+//   1. equal rounded absolutes always show a zero delta (and vice versa), and
+//   2. a delta whose magnitude rounds to zero is rendered without a sign
+//      (no "+0", no "−0 C").
+
 interface MetricRow {
   label: string;
   abs: AbsFmt;
+  /** Quantize a raw value to the resolution its absolute is displayed at. */
+  display: (v: number) => number;
+  /** Render a delta already quantized to display resolution. */
   delta: DeltaFmt;
 }
 
 function sign(n: number): string {
-  return n >= 0 ? "+" : "−";
+  return n < 0 ? "−" : "+";
 }
 
-function signedUnit(unit: string, decimals = 0): DeltaFmt {
-  return (v) => `${sign(v)}${Math.abs(v).toFixed(decimals)}${unit}`;
+/** Round-to-base-unit display (W, bpm, C, %, m, seconds). */
+function roundDisplay(v: number): number {
+  return Math.round(v);
 }
 
-function signedTime(v: number): string {
+/** Distance is displayed in km to two decimals. */
+function kmDisplay(v: number): number {
+  return Number((v / 1000).toFixed(2));
+}
+
+/** Fixed-decimal delta in `unit`; sign suppressed when the magnitude is zero. */
+function deltaFixed(unit: string, decimals = 0): DeltaFmt {
+  return (v) => {
+    const mag = Math.abs(v).toFixed(decimals);
+    return Number(mag) === 0 ? `0${unit}` : `${sign(v)}${mag}${unit}`;
+  };
+}
+
+/** `±M:SS` delta from a seconds value; sign suppressed at 0:00. */
+function deltaTime(v: number): string {
   const total = Math.round(Math.abs(v));
   const m = Math.floor(total / 60);
   const s = total % 60;
-  return `${sign(v)}${m}:${String(s).padStart(2, "0")}`;
+  const mag = `${m}:${String(s).padStart(2, "0")}`;
+  return total === 0 ? mag : `${sign(v)}${mag}`;
 }
 
-function signedKm(v: number): string {
-  return `${sign(v)}${(Math.abs(v) / 1000).toFixed(2)} km`;
+/** Distance delta; `v` is already in km. Sign suppressed when it rounds to 0.00. */
+function deltaKm(v: number): string {
+  const mag = Math.abs(v).toFixed(2);
+  return Number(mag) === 0 ? `${mag} km` : `${sign(v)}${mag} km`;
+}
+
+/** RPE delta; RPE is integer-valued, displayed unrounded. Sign suppressed at 0. */
+function deltaRpe(v: number): string {
+  return v === 0 ? "0" : `${sign(v)}${Math.abs(v)}`;
 }
 
 const PERFORMANCE_ROWS: Record<string, MetricRow> = {
-  duration: { label: "Duration", abs: fmtDuration, delta: signedTime },
-  distance: { label: "Distance", abs: fmtDistance, delta: signedKm },
-  avgPower: { label: "Avg Power", abs: fmtPower, delta: signedUnit(" W") },
-  avgHeartRate: { label: "Avg HR", abs: fmtHR, delta: signedUnit(" bpm") },
-  maxHeartRate: { label: "Max HR", abs: fmtHR, delta: signedUnit(" bpm") },
-  avgPace: { label: "Avg Pace", abs: fmtPace, delta: (v) => `${signedTime(v)}/km` },
-  rpe: { label: "RPE", abs: (v) => String(v), delta: signedUnit("") },
+  duration: { label: "Duration", abs: fmtDuration, display: roundDisplay, delta: deltaTime },
+  distance: { label: "Distance", abs: fmtDistance, display: kmDisplay, delta: deltaKm },
+  avgPower: { label: "Avg Power", abs: fmtPower, display: roundDisplay, delta: deltaFixed(" W") },
+  avgHeartRate: { label: "Avg HR", abs: fmtHR, display: roundDisplay, delta: deltaFixed(" bpm") },
+  maxHeartRate: { label: "Max HR", abs: fmtHR, display: roundDisplay, delta: deltaFixed(" bpm") },
+  avgPace: { label: "Avg Pace", abs: fmtPace, display: roundDisplay, delta: (v) => `${deltaTime(v)}/km` },
+  rpe: { label: "RPE", abs: (v) => String(v), display: (v) => v, delta: deltaRpe },
 };
 
 const CONDITIONS_ROWS: Record<string, MetricRow> = {
-  temperature: { label: "Temperature", abs: fmtTemperature, delta: signedUnit(" C") },
-  windSpeed: { label: "Wind Speed", abs: (v) => `${Math.round(v)} km/h`, delta: signedUnit(" km/h") },
-  totalAscent: { label: "Total Ascent", abs: fmtElevation, delta: signedUnit(" m") },
-  humidity: { label: "Humidity", abs: fmtHumidity, delta: signedUnit(" %") },
-  dewPoint: { label: "Dew Point", abs: fmtTemperature, delta: signedUnit(" C") },
+  temperature: { label: "Temperature", abs: fmtTemperature, display: roundDisplay, delta: deltaFixed(" C") },
+  windSpeed: { label: "Wind Speed", abs: (v) => `${Math.round(v)} km/h`, display: roundDisplay, delta: deltaFixed(" km/h") },
+  totalAscent: { label: "Total Ascent", abs: fmtElevation, display: roundDisplay, delta: deltaFixed(" m") },
+  humidity: { label: "Humidity", abs: fmtHumidity, display: roundDisplay, delta: deltaFixed(" %") },
+  dewPoint: { label: "Dew Point", abs: fmtTemperature, display: roundDisplay, delta: deltaFixed(" C") },
 };
 
 const UNAVAILABLE_NOTE: Record<string, string> = {
@@ -80,12 +122,12 @@ function toCells(
   const absFmt = row?.abs ?? ((v: number) => String(v));
 
   if (d.status === "available") {
-    return [
-      label,
-      absFmt(d.baseline),
-      absFmt(d.comparand),
-      (row?.delta ?? String)(d.delta),
-    ];
+    const display = row?.display ?? ((v: number) => v);
+    const deltaFmt = row?.delta ?? ((v: number) => String(v));
+    // Delta is derived from the *displayed* values so it can never contradict
+    // the rounded absolutes shown beside it.
+    const delta = display(d.comparand) - display(d.baseline);
+    return [label, absFmt(d.baseline), absFmt(d.comparand), deltaFmt(delta)];
   }
 
   const b = d.baseline === null ? "—" : absFmt(d.baseline);
