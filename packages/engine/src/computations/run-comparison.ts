@@ -4,11 +4,11 @@
 // primitive; the plan-gated Comparable-History Delta path is left untouched.
 //
 // delta = comparand − baseline (pace sign unflipped).
+//
+// This module is IO-free: `computeRunComparison` and `extractRunComparisonSide`
+// operate on already-parsed values. File loading lives in
+// `artifacts/run-comparison.ts`.
 
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
-import { parse as parseYaml } from "yaml";
-import { transformKeysSnakeToCamel } from "../plan/case-keys.js";
 import { numericDelta } from "./metric-delta.js";
 
 export type RunComparisonPerformanceMetric =
@@ -217,20 +217,4 @@ export function extractRunComparisonSide(
       windDirection: weather ? num(weather.windDirection) : null,
     },
   };
-}
-
-/** Read + parse a saved Analysis Artifact file into one comparison side. */
-export async function loadRunComparisonSide(
-  path: string,
-  label?: string,
-): Promise<RunComparisonSide> {
-  const contents = await readFile(path, "utf-8");
-  const isYaml = /\.ya?ml$/i.test(path);
-  const parsed: unknown = isYaml ? parseYaml(contents) : JSON.parse(contents);
-  const normalized = isYaml ? transformKeysSnakeToCamel(parsed) : parsed;
-  const artifact = asObject(normalized);
-  if (!artifact) {
-    throw new Error(`Artifact at ${path} did not parse to an object`);
-  }
-  return extractRunComparisonSide(artifact, label ?? basename(path));
 }

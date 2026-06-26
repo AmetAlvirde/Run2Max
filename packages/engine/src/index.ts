@@ -69,8 +69,8 @@ export { computeComparableHistoryDelta } from "./computations/comparable-history
 export {
   computeRunComparison,
   extractRunComparisonSide,
-  loadRunComparisonSide,
 } from "./computations/run-comparison.js";
+export { loadRunComparisonSide } from "./artifacts/run-comparison.js";
 export type {
   RunComparison,
   RunComparisonSide,
