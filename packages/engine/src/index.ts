@@ -66,6 +66,23 @@ export type {
 export { quantify } from "./computations/quantify.js";
 export { comparePrescriptionToSegments } from "./computations/prescription-comparison.js";
 export { computeComparableHistoryDelta } from "./computations/comparable-history.js";
+export {
+  computeRunComparison,
+  extractRunComparisonSide,
+  loadRunComparisonSide,
+} from "./computations/run-comparison.js";
+export type {
+  RunComparison,
+  RunComparisonSide,
+  RunComparisonMetricDelta,
+  RunComparisonMetricDeltaAvailable,
+  RunComparisonMetricDeltaUnavailable,
+  RunComparisonPerformanceMetric,
+  RunComparisonConditionsMetric,
+  RunComparisonContextField,
+  RunComparisonUnavailableReason,
+} from "./computations/run-comparison.js";
+export { formatRunComparison } from "./formatters/run-comparison.js";
 export { formatResult } from "./formatters/index.js";
 export type {
   ComparableHistoryMetric,

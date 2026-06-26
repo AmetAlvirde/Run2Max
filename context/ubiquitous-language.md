@@ -59,6 +59,7 @@
 | **Detailed Profile**        | The Output Profile intended to include the AnalysisResult sections and columns required to reconstruct Prescription Comparison and Comparable-History Delta evidence.                         | full report, complete profile         |
 | **Prescription Comparison** | The structured portion of an AnalysisResult that compares one Run to its associated Prescribed Run by Prescribed Step order.                                                                 | workout comparison, interval analysis |
 | **Comparable-History Delta** | A deterministic numeric difference between the current Run's actual evidence and one prior same-Comparison Group Run's actual evidence for one supported metric.                              | historical comparison, progress delta |
+| **Run Comparison**          | A deterministic, summary-level delta between two explicitly-chosen Runs — a *baseline* and a *comparand* — independent of any Plan, Prescribed Run, or Comparison Group, across supported performance and conditions metrics.                                       | ad-hoc comparison, run diff           |
 | **Completion Tolerance**    | The accepted lower and upper actual-value bounds for classifying Prescribed Step completion against its duration or distance target.                                                         | margin of error, pass/fail threshold  |
 | **Segment**                 | A lap-indexed slice of a Run derived from FIT lap markers.                                                                                                                                   | lap, interval                         |
 | **Km Split**                | A 1-kilometer slice of a Run derived independently of lap markers.                                                                                                                           | kilometer, split                      |
@@ -95,6 +96,10 @@
   **Comparison Group**.
 - A **Prescription Comparison** uses **Completion Tolerance** to classify each
   comparable **Prescribed Step** as within tolerance, short, or long.
+- A **Run Comparison** compares exactly two **Runs** (baseline and comparand),
+  belongs to no **Comparison Group**, and computes `delta = comparand − baseline`
+  with pace sign unflipped. It shares its metric-delta computation with
+  **Comparable-History Delta** but is otherwise independent.
 - A **Zone** belongs to exactly one **Testing Period**, which belongs to exactly
   one **Week**.
 - A **Prescribed Step** may declare a **Target Range** when numeric comparison

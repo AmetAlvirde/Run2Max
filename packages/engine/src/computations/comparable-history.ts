@@ -1,5 +1,6 @@
 import type { HistoryArtifactEligible } from "../plan/history.js";
 import type { PrescriptionComparisonRunActuals } from "../types.js";
+import { numericDelta } from "./metric-delta.js";
 
 export type ComparableHistoryMetric =
   | "avgPower"
@@ -41,10 +42,6 @@ export interface ComparableHistoryRunDelta {
   metrics: ReadonlyArray<ComparableHistoryMetricDelta>;
 }
 
-function toFiniteNumberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
 const METRICS: ReadonlyArray<ComparableHistoryMetric> = [
   "avgPower",
   "avgHeartRate",
@@ -58,31 +55,31 @@ function classifyMetric(
   current: PrescriptionComparisonRunActuals,
   prior: HistoryArtifactEligible,
 ): ComparableHistoryMetricDelta {
-  const currentValue = toFiniteNumberOrNull(current[metric]);
-  const priorValue = toFiniteNumberOrNull(prior.actual[metric]);
+  // left = current run, right = prior run → delta = current - prior.
+  const d = numericDelta(current[metric], prior.actual[metric]);
 
-  if (currentValue !== null && priorValue !== null) {
+  if (d.missing === "none") {
     return {
       metric,
       status: "available",
-      current: currentValue,
-      prior: priorValue,
-      delta: currentValue - priorValue,
+      current: d.left as number,
+      prior: d.right as number,
+      delta: d.delta as number,
     };
   }
 
   const reason: ComparableHistoryUnavailableReason =
-    currentValue === null && priorValue === null
+    d.missing === "both"
       ? "missing_both_values"
-      : currentValue === null
+      : d.missing === "left"
         ? "missing_current_value"
         : "missing_prior_value";
 
   return {
     metric,
     status: "unavailable",
-    current: currentValue,
-    prior: priorValue,
+    current: d.left,
+    prior: d.right,
     reason,
   };
 }
