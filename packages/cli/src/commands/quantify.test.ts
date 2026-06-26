@@ -55,6 +55,10 @@ vi.mock("node:fs/promises", () => ({
 
 import command, { parsePrescribedRunOverride } from "./quantify.js";
 
+type RunContext = Parameters<NonNullable<typeof command.run>>[0];
+const runWith = (args: Record<string, unknown>) =>
+  command.run?.({ args: { _: [] as string[], ...args } } as RunContext);
+
 describe("quantify command prescribed-run override", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -112,14 +116,12 @@ describe("quantify command prescribed-run override", () => {
   });
 
   it("maps bare date selector to overrideDate in quantify options", async () => {
-    await command.run?.({
-      args: {
-        file: "/tmp/run.fit",
-        format: "md",
-        "exclude-anomalies": false,
-        "no-weather": false,
-        "prescribed-run": "2026-05-12",
-      },
+    await runWith({
+      file: "/tmp/run.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
+      "prescribed-run": "2026-05-12",
     });
 
     expect(mockQuantify).toHaveBeenCalledTimes(1);
@@ -129,14 +131,12 @@ describe("quantify command prescribed-run override", () => {
   });
 
   it("passes cwd plan fallback when override is supplied without --plan", async () => {
-    await command.run?.({
-      args: {
-        file: "/tmp/run.fit",
-        format: "md",
-        "exclude-anomalies": false,
-        "no-weather": false,
-        "prescribed-run": "Tuesday Intervals",
-      },
+    await runWith({
+      file: "/tmp/run.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
+      "prescribed-run": "Tuesday Intervals",
     });
 
     expect(mockLoadPlan).toHaveBeenCalledWith(`${process.cwd()}/plan.yaml`);
@@ -156,14 +156,12 @@ describe("quantify command prescribed-run override", () => {
       }) as never);
 
     await expect(
-      command.run?.({
-        args: {
-          file: "/tmp/run.fit",
-          format: "md",
-          "exclude-anomalies": false,
-          "no-weather": false,
-          "prescribed-run": "Tuesday Intervals",
-        },
+      runWith({
+        file: "/tmp/run.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+        "prescribed-run": "Tuesday Intervals",
       }),
     ).rejects.toThrow("EXIT:1");
 
@@ -175,13 +173,11 @@ describe("quantify command prescribed-run override", () => {
   });
 
   it("does not pass prescribedRunOverride when flag is absent", async () => {
-    await command.run?.({
-      args: {
-        file: "/tmp/run.fit",
-        format: "md",
-        "exclude-anomalies": false,
-        "no-weather": false,
-      },
+    await runWith({
+      file: "/tmp/run.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
     });
 
     expect(mockQuantify).toHaveBeenCalledTimes(1);
@@ -191,13 +187,11 @@ describe("quantify command prescribed-run override", () => {
   });
 
   it("passes currentFitBasename derived from input file path", async () => {
-    await command.run?.({
-      args: {
-        file: "/tmp/subdir/run-2026-04-12.fit",
-        format: "md",
-        "exclude-anomalies": false,
-        "no-weather": false,
-      },
+    await runWith({
+      file: "/tmp/subdir/run-2026-04-12.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
     });
 
     expect(mockQuantify).toHaveBeenCalledTimes(1);
@@ -219,14 +213,12 @@ describe("quantify command prescribed-run override", () => {
       }) as never);
 
     await expect(
-      command.run?.({
-        args: {
-          file: "/tmp/run.fit",
-          format: "md",
-          "exclude-anomalies": false,
-          "no-weather": false,
-          "prescribed-run": "Wednesday Intervals",
-        },
+      runWith({
+        file: "/tmp/run.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+        "prescribed-run": "Wednesday Intervals",
       }),
     ).rejects.toThrow("EXIT:1");
 
@@ -246,14 +238,12 @@ describe("quantify command prescribed-run override", () => {
     }) as never);
 
     await expect(
-      command.run?.({
-        args: {
-          file: "/tmp/run.fit",
-          format: "md",
-          "exclude-anomalies": false,
-          "no-weather": false,
-          "prescribed-run": "date:2026-04-15",
-        },
+      runWith({
+        file: "/tmp/run.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+        "prescribed-run": "date:2026-04-15",
       }),
     ).rejects.toThrow("EXIT:1");
 
