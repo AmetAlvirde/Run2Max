@@ -141,7 +141,7 @@ describe("formatRunComparison — available rows", () => {
     expect(rowCells(output, "Avg Power")).toEqual(["Avg Power", "200 W", "250 W", "+50 W"]);
     expect(rowCells(output, "Avg HR")).toEqual(["Avg HR", "150 bpm", "145 bpm", "−5 bpm"]);
     expect(rowCells(output, "Max HR")).toEqual(["Max HR", "176 bpm", "180 bpm", "+4 bpm"]);
-    expect(rowCells(output, "Avg Pace")).toEqual(["Avg Pace", "5:00/km", "4:50/km", "−0:10/km"]);
+    expect(rowCells(output, "Avg Pace")).toEqual(["Avg Pace", "5:00/km", "4:50/km", "−0:10/km (faster)"]);
     expect(rowCells(output, "RPE")).toEqual(["RPE", "6", "8", "+2"]);
   });
 
@@ -164,6 +164,31 @@ describe("formatRunComparison — available rows", () => {
     expect(rowCells(output, "Humidity")).toEqual(["Humidity", "80 %", "65 %", "−15 %"]);
     expect(rowCells(output, "Dew Point")).toEqual(["Dew Point", "8 C", "8 C", "0 C"]);
   });
+
+  it("annotates the pace delta as faster/slower, with no annotation at zero", () => {
+    const faster = formatRunComparison(
+      comparison({
+        performance: [avail<RunComparisonPerformanceMetric>("avgPace", 300, 296)],
+      }),
+    );
+    const slower = formatRunComparison(
+      comparison({
+        performance: [avail<RunComparisonPerformanceMetric>("avgPace", 300, 305)],
+      }),
+    );
+    const equal = formatRunComparison(
+      comparison({
+        performance: [avail<RunComparisonPerformanceMetric>("avgPace", 300, 300)],
+      }),
+    );
+
+    // Negative delta = comparand quicker → "(faster)".
+    expect(rowCells(faster, "Avg Pace")).toEqual(["Avg Pace", "5:00/km", "4:56/km", "−0:04/km (faster)"]);
+    // Positive delta = comparand slower → "(slower)".
+    expect(rowCells(slower, "Avg Pace")).toEqual(["Avg Pace", "5:00/km", "5:05/km", "+0:05/km (slower)"]);
+    // Zero delta = no sign, no annotation.
+    expect(rowCells(equal, "Avg Pace")).toEqual(["Avg Pace", "5:00/km", "5:00/km", "0:00/km"]);
+  });
 });
 
 describe("formatRunComparison — unavailable rows", () => {
@@ -185,7 +210,7 @@ describe("formatRunComparison — unavailable rows", () => {
 });
 
 describe("formatRunComparison — context-only rows", () => {
-  it("renders conditions text and wind direction as compass notation", () => {
+  it("renders conditions text and wind direction as compass point plus exact degrees", () => {
     const context: RunComparisonContextField[] = [
       { field: "conditions", baseline: "Clear", comparand: "Rain" },
       { field: "windDirection", baseline: 180, comparand: 200 },
@@ -193,7 +218,7 @@ describe("formatRunComparison — context-only rows", () => {
     const output = formatRunComparison(comparison({ context }));
 
     expect(rowCells(output, "Conditions")).toEqual(["Conditions", "Clear", "Rain", "(context only)"]);
-    expect(rowCells(output, "Wind Direction")).toEqual(["Wind Direction", "S", "SSW", "(context only)"]);
+    expect(rowCells(output, "Wind Direction")).toEqual(["Wind Direction", "S (180°)", "SSW (200°)", "(context only)"]);
   });
 
   it("renders missing context values as —", () => {
@@ -204,7 +229,7 @@ describe("formatRunComparison — context-only rows", () => {
     const output = formatRunComparison(comparison({ context }));
 
     expect(rowCells(output, "Conditions")).toEqual(["Conditions", "—", "Rain", "(context only)"]);
-    expect(rowCells(output, "Wind Direction")).toEqual(["Wind Direction", "S", "—", "(context only)"]);
+    expect(rowCells(output, "Wind Direction")).toEqual(["Wind Direction", "S (180°)", "—", "(context only)"]);
   });
 });
 

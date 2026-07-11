@@ -78,6 +78,17 @@ function deltaTime(v: number): string {
   return total === 0 ? mag : `${sign(v)}${mag}`;
 }
 
+/**
+ * Pace delta in `±M:SS/km`, annotated faster/slower. The sign is unflipped
+ * (negative = comparand quicker), so a negative delta is `(faster)` and a
+ * positive one `(slower)`. A zero delta carries no sign and no annotation.
+ */
+function deltaPace(v: number): string {
+  const base = `${deltaTime(v)}/km`;
+  if (Math.round(v) === 0) return base;
+  return v < 0 ? `${base} (faster)` : `${base} (slower)`;
+}
+
 /** Distance delta; `v` is already in km. Sign suppressed when it rounds to 0.00. */
 function deltaKm(v: number): string {
   const mag = Math.abs(v).toFixed(2);
@@ -95,7 +106,7 @@ const PERFORMANCE_ROWS: Record<string, MetricRow> = {
   avgPower: { label: "Avg Power", abs: fmtPower, display: roundDisplay, delta: deltaFixed(" W") },
   avgHeartRate: { label: "Avg HR", abs: fmtHR, display: roundDisplay, delta: deltaFixed(" bpm") },
   maxHeartRate: { label: "Max HR", abs: fmtHR, display: roundDisplay, delta: deltaFixed(" bpm") },
-  avgPace: { label: "Avg Pace", abs: fmtPace, display: roundDisplay, delta: (v) => `${deltaTime(v)}/km` },
+  avgPace: { label: "Avg Pace", abs: fmtPace, display: roundDisplay, delta: deltaPace },
   rpe: { label: "RPE", abs: (v) => String(v), display: (v) => v, delta: deltaRpe },
 };
 
@@ -146,7 +157,9 @@ function fmtContextValue(
 ): string {
   if (value === null) return "—";
   if (field === "windDirection" && typeof value === "number") {
-    return degreesToCompass16(value);
+    // Compass point plus the exact stored degrees, e.g. "S (180°)". Wind
+    // direction is integer-valued; Math.round only guards fractional inputs.
+    return `${degreesToCompass16(value)} (${Math.round(value)}°)`;
   }
   return String(value);
 }

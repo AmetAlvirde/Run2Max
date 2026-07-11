@@ -126,12 +126,15 @@ describe("compare command happy path", () => {
 
     const out = stdout();
     expect(out).toContain("# Run Comparison");
-    expect(out).toContain("- **Baseline:** morning-run.yaml");
-    expect(out).toContain("- **Comparand:** evening-run.yaml");
+    // Labels are the filenames with the artifact extension stripped.
+    expect(out).toContain("- **Baseline:** morning-run");
+    expect(out).toContain("- **Comparand:** evening-run");
+    expect(out).not.toContain("morning-run.yaml");
+    expect(out).not.toContain("evening-run.yaml");
     expect(out).toContain("## Performance");
     expect(out).toContain("## Conditions");
-    // Column headers name the actual Runs (filenames), not "Baseline/Comparand".
-    expect(out).toMatch(/morning-run\.yaml .*evening-run\.yaml/);
+    // Column headers name the actual Runs (filenames, extension stripped).
+    expect(out).toMatch(/morning-run .*evening-run/);
     // Real delta computed through the engine: 260 − 250 = +10 W.
     expect(out).toMatch(/Avg Power .*\| .*250 W .*\| .*260 W .*\| .*\+10 W/);
     expect(process.exitCode).not.toBe(1);

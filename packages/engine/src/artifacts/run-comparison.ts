@@ -5,7 +5,7 @@
 // (`extractRunComparisonSide`) stay pure in `computations/`; only this loader
 // performs IO, through the shared `parseArtifactFile` seam.
 
-import { basename } from "node:path";
+import { basename, extname } from "node:path";
 import {
   extractRunComparisonSide,
   type RunComparisonSide,
@@ -34,5 +34,7 @@ export async function loadRunComparisonSide(
     throw new Error(`Artifact at ${path} did not parse to an object`);
   }
 
-  return extractRunComparisonSide(artifact, label ?? basename(path));
+  // Default label is the filename without its artifact extension (.yaml/.yml/
+  // .json): basename(path, extname(path)) strips exactly one trailing ext.
+  return extractRunComparisonSide(artifact, label ?? basename(path, extname(path)));
 }
