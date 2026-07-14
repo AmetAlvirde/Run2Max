@@ -1,8 +1,7 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { parseArtifactFile } from "../artifacts/parse.js";
 import type { PrescriptionComparisonRunActuals } from "../types.js";
-import { transformKeysSnakeToCamel } from "./case-keys.js";
 
 export interface ReadHistoryArtifactsOptions {
   blockDirPath: string;
@@ -96,16 +95,6 @@ function pickArtifactPath(
   return { yamlPath, jsonPath };
 }
 
-function normalizeParsedArtifact(
-  format: ArtifactFormat,
-  parsed: unknown,
-): Record<string, unknown> | undefined {
-  const normalized = format === "yaml"
-    ? transformKeysSnakeToCamel(parsed)
-    : parsed;
-  return asObject(normalized);
-}
-
 function toMetricValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -137,35 +126,19 @@ async function classifySingleArtifact(
     format: ArtifactFormat;
   },
 ): Promise<HistoryArtifactDescriptor> {
-  let contents: string;
-  try {
-    contents = await readFile(params.sourcePath, "utf-8");
-  } catch (err) {
+  const parseResult = await parseArtifactFile(params.sourcePath);
+  if (!parseResult.ok) {
     return {
       status: "unavailable",
       sourcePath: params.sourcePath,
       format: params.format,
       fitBasename: params.fitBasename,
       reason: "unparseable_artifact",
-      parseError: (err as Error).message,
+      parseError: parseResult.error,
     };
   }
 
-  let parsed: unknown;
-  try {
-    parsed = params.format === "yaml" ? parseYaml(contents) : JSON.parse(contents);
-  } catch (err) {
-    return {
-      status: "unavailable",
-      sourcePath: params.sourcePath,
-      format: params.format,
-      fitBasename: params.fitBasename,
-      reason: "unparseable_artifact",
-      parseError: (err as Error).message,
-    };
-  }
-
-  const artifact = normalizeParsedArtifact(params.format, parsed);
+  const artifact = asObject(parseResult.data);
   if (!artifact) {
     return toPartialDescriptor(
       {

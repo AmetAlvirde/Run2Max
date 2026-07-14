@@ -155,6 +155,15 @@ function degreesToCompass(deg: number): string {
   return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8]!;
 }
 
+/** 16-point compass notation (e.g. 180 → S, 200 → SSW, 315 → NW). */
+export function degreesToCompass16(deg: number): string {
+  const dirs = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+  ] as const;
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]!;
+}
+
 export function fmtWind(speed: number, dir: number): string {
   return `${Math.round(speed)} km/h ${degreesToCompass(dir)}`;
 }

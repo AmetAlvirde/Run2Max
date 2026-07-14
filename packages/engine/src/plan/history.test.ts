@@ -181,7 +181,7 @@ describe("readHistoryArtifacts", () => {
         reason: "ambiguous_artifact",
         format: "unknown",
       });
-      expect((report.candidates[0] as { sourcePath: string[] }).sourcePath).toHaveLength(2);
+      expect((report.candidates[0] as { sourcePath: readonly string[] }).sourcePath).toHaveLength(2);
     });
   });
 
