@@ -172,8 +172,12 @@ export default defineCommand({
 
     // ---- Validate --timezone
     if (args.timezone) {
-      const validTimezones = new Set(Intl.supportedValuesOf("timeZone"));
-      if (!validTimezones.has(args.timezone)) {
+      // Ask the runtime rather than Intl.supportedValuesOf(), which lists only
+      // canonical zones and so rejects usable aliases like
+      // America/Argentina/Buenos_Aires.
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: args.timezone });
+      } catch {
         fatal(
           `Invalid timezone "${args.timezone}". Use an IANA timezone name (e.g. America/Santiago)`,
         );
