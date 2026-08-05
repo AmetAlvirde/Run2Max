@@ -67,6 +67,18 @@ run2max quantify my-run.fit --prescribed-run "Tuesday Intervals"
 run2max quantify my-run.fit --prescribed-run label:2026-05-12
 ```
 
+The timezone actually used is `--timezone` when passed, otherwise
+`athlete.timezone` from config. Whichever wins is validated against the
+runtime's own zone table, so IANA aliases such as
+`America/Argentina/Buenos_Aires` are accepted, not just the canonical names
+`Intl.supportedValuesOf("timeZone")` lists. An unusable zone from either source
+exits 1 with the same message.
+
+Because the config file has to be read before the config-supplied zone can be
+checked, a missing `.fit` file or an unreadable config is reported ahead of a
+bad timezone when an invocation has both problems. Fix the reported error and
+re-run to see the next one.
+
 ### Plan-backed prescription comparison
 
 Without `--prescribed-run`, `quantify` auto-discovers `plan.yaml` beside the

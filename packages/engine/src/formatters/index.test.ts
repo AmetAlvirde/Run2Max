@@ -1013,6 +1013,12 @@ describe("formatResult", () => {
       expect(parsed["metadata"]).toBeDefined();
     });
 
+    it("serializes summary.date as an ISO timestamp, not {}", () => {
+      const { output } = formatResult(buildResult(), "yaml", DEFAULT_PROFILE);
+      const parsed = parseYaml(output) as Record<string, Record<string, unknown>>;
+      expect(parsed["summary"]!["date"]).toBe(BASE_DATE.toISOString());
+    });
+
     it("uses snake_case for camelCase keys", () => {
       const { output } = formatResult(buildResult(), "yaml", DEFAULT_PROFILE);
       const parsed = parseYaml(output) as Record<string, unknown>;

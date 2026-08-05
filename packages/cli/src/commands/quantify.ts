@@ -170,16 +170,6 @@ export default defineCommand({
     }
     const format: OutputFormat = formatMap[formatKey]!;
 
-    // ---- Validate --timezone
-    if (args.timezone) {
-      const validTimezones = new Set(Intl.supportedValuesOf("timeZone"));
-      if (!validTimezones.has(args.timezone)) {
-        fatal(
-          `Invalid timezone "${args.timezone}". Use an IANA timezone name (e.g. America/Santiago)`,
-        );
-      }
-    }
-
     // ---- Validate --downsample
     let downsample: number | undefined;
     if (args.downsample !== undefined) {
@@ -242,8 +232,30 @@ export default defineCommand({
       outputProfile = config.output.default;
     }
 
-    // ---- Resolve timezone
+    // ---- Resolve and validate timezone
+    // Validate the resolved value, not just the flag: config.athlete.timezone
+    // is a free-form string in the schema and reaches Intl the same way.
+    //
+    // This necessarily runs after the .fit read and config load, so those
+    // errors take precedence over a bad timezone when an invocation has both.
+    // That ordering is accepted, not accidental: validating the flag early as
+    // well would mean two sites enforcing one rule, and the config source
+    // cannot be checked before the config is loaded. Both paths exit 1 with an
+    // accurate message, so fixing one and re-running surfaces the other.
     const timezone = args.timezone ?? config?.athlete?.timezone;
+    if (timezone) {
+      // Ask the runtime rather than Intl.supportedValuesOf(), which lists only
+      // canonical zones and so rejects usable aliases like
+      // America/Argentina/Buenos_Aires.
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+      } catch {
+        fatal(
+          `Invalid timezone "${timezone}". Use an IANA timezone name (e.g. America/Santiago)`,
+        );
+      }
+    }
+
     let prescribedRunOverride:
       | { overrideDate: string }
       | { overrideLabel: string }
