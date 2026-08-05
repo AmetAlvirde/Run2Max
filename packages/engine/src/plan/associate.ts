@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFitBuffer, normalizeFFP } from "normalize-fit-file";
 import type { Plan } from "./types.js";
-import { addDays } from "./dates.js";
+import { addDays, toLocalDate } from "./dates.js";
 import { walkPlan, type WeekContext } from "./walk.js";
 
 // ---------------------------------------------------------------------------
@@ -54,19 +54,6 @@ export class PrescribedRunOverrideError extends Error {
     super(`Prescribed run override failed: ${reason}`);
     this.name = "PrescribedRunOverrideError";
   }
-}
-
-/**
- * Converts a UTC Date to a local ISO date string (YYYY-MM-DD) in the given
- * timezone. Uses the "en-CA" locale which produces ISO 8601 date format.
- */
-function toLocalDate(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
 }
 
 // ---------------------------------------------------------------------------

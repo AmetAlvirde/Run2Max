@@ -228,6 +228,93 @@ describe("quantify command prescribed-run override", () => {
     );
   });
 
+  it("accepts an IANA alias timezone that Intl.supportedValuesOf() omits", async () => {
+    await runWith({
+      file: "/tmp/run.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
+      timezone: "America/Argentina/Buenos_Aires",
+    });
+
+    expect(mockQuantify).toHaveBeenCalledTimes(1);
+    expect(mockQuantify.mock.calls[0]?.[1]).toMatchObject({
+      timezone: "America/Argentina/Buenos_Aires",
+    });
+  });
+
+  it("fails before quantify when --timezone is not a real zone", async () => {
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(((code?: string | number | null | undefined) => {
+        throw new Error(`EXIT:${code}`);
+      }) as never);
+
+    await expect(
+      runWith({
+        file: "/tmp/run.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+        timezone: "Not/AZone",
+      }),
+    ).rejects.toThrow("EXIT:1");
+
+    expect(mockQuantify).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid timezone "Not/AZone"'),
+    );
+  });
+
+  it("fails with the timezone message when config supplies an invalid zone and no flag is passed", async () => {
+    mockLoadConfig.mockResolvedValue({
+      athlete: { timezone: "America/Buenos Aires" },
+    });
+
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(((code?: string | number | null | undefined) => {
+        throw new Error(`EXIT:${code}`);
+      }) as never);
+
+    await expect(
+      runWith({
+        file: "/tmp/run.fit",
+        format: "md",
+        "exclude-anomalies": false,
+        "no-weather": false,
+      }),
+    ).rejects.toThrow("EXIT:1");
+
+    expect(mockQuantify).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid timezone "America/Buenos Aires"'),
+    );
+    expect(console.error).not.toHaveBeenCalledWith(
+      expect.stringContaining("expected a valid .fit file"),
+    );
+  });
+
+  it("accepts a valid config timezone when no flag is passed", async () => {
+    mockLoadConfig.mockResolvedValue({
+      athlete: { timezone: "America/Argentina/Buenos_Aires" },
+    });
+
+    await runWith({
+      file: "/tmp/run.fit",
+      format: "md",
+      "exclude-anomalies": false,
+      "no-weather": false,
+    });
+
+    expect(mockQuantify).toHaveBeenCalledTimes(1);
+    expect(mockQuantify.mock.calls[0]?.[1]).toMatchObject({
+      timezone: "America/Argentina/Buenos_Aires",
+    });
+  });
+
   it("does not write formatted output after PrescribedRunOverrideError", async () => {
     mockQuantify.mockRejectedValueOnce(
       new MockPrescribedRunOverrideError("no_prescribed_run", { overrideDate: "2026-04-15" }),

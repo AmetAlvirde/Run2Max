@@ -598,4 +598,104 @@ describe("readHistoryArtifacts", () => {
       });
     });
   });
+
+  describe("capturedDate derived from summary.date", () => {
+    const artifactWithSummary = (summary: Record<string, unknown>): string =>
+      validJsonArtifact({ capturedDate: undefined, summary });
+
+    it("uses the summary timezone so an evening run keeps its local date", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.fit": "",
+          "run-1.json": artifactWithSummary({
+            date: "2026-04-13T00:30:00.000Z",
+            timezone: "America/Argentina/Buenos_Aires",
+          }),
+          "run-2.fit": "",
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          capturedDate: "2026-04-12",
+        });
+      });
+    });
+
+    it("falls back to the UTC slice when the summary has no timezone", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.fit": "",
+          "run-1.json": artifactWithSummary({
+            date: "2026-04-13T00:30:00.000Z",
+          }),
+          "run-2.fit": "",
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          capturedDate: "2026-04-13",
+        });
+      });
+    });
+
+    it("falls back to the UTC slice rather than throwing on a garbage timezone", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.fit": "",
+          "run-1.json": artifactWithSummary({
+            date: "2026-04-13T00:30:00.000Z",
+            timezone: "Not/AZone",
+          }),
+          "run-2.fit": "",
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          capturedDate: "2026-04-13",
+        });
+      });
+    });
+
+    it("falls back to the UTC slice when summary.date is not a parseable instant", async () => {
+      await withTempDir(async (dir) => {
+        await writeFiles(dir, {
+          "run-1.fit": "",
+          "run-1.json": artifactWithSummary({
+            date: "2026-04-13",
+            timezone: "America/Argentina/Buenos_Aires",
+          }),
+          "run-2.fit": "",
+        });
+
+        const report = await readHistoryArtifacts({
+          blockDirPath: dir,
+          currentFitBasename: "run-2",
+          comparisonGroup: "Tuesday Intervals",
+        });
+
+        expect(report.candidates[0]).toMatchObject({
+          status: "eligible",
+          capturedDate: "2026-04-13",
+        });
+      });
+    });
+  });
 });

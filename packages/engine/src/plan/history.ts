@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArtifactFile } from "../artifacts/parse.js";
+import { toLocalDate } from "./dates.js";
 import type { PrescriptionComparisonRunActuals } from "../types.js";
 
 export interface ReadHistoryArtifactsOptions {
@@ -95,6 +96,31 @@ function pickArtifactPath(
   return { yamlPath, jsonPath };
 }
 
+/**
+ * Derives the athlete's local calendar day from a serialized `summary.date`.
+ *
+ * `summary.date` is a UTC instant, so slicing it reports the UTC day — a day
+ * late for evening runs in negative offsets. When `summary.timezone` is usable
+ * we resolve the instant in that zone instead. Artifact parsing must never
+ * throw, so anything unusable (missing/garbage zone, bare date, unparseable
+ * instant) falls back to the UTC slice.
+ */
+function toCapturedDate(rawDate: string, timezone: unknown): string {
+  const utcSlice = rawDate.slice(0, 10);
+  if (!isNonEmptyString(timezone)) return utcSlice;
+  // A bare YYYY-MM-DD is already local — shifting it would move the day.
+  if (rawDate.length <= 10) return utcSlice;
+
+  const instant = new Date(rawDate);
+  if (Number.isNaN(instant.getTime())) return utcSlice;
+
+  try {
+    return toLocalDate(instant, timezone.trim());
+  } catch {
+    return utcSlice;
+  }
+}
+
 function toMetricValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -160,7 +186,7 @@ async function classifySingleArtifact(
   const capturedDate = isNonEmptyString(artifact.capturedDate)
     ? artifact.capturedDate.trim()
     : isNonEmptyString(summary?.date)
-      ? summary.date.trim().slice(0, 10)
+      ? toCapturedDate(summary.date.trim(), summary.timezone)
       : undefined;
 
   const artifactComparisonGroup = isNonEmptyString(artifact.comparisonGroup)

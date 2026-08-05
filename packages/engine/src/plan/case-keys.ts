@@ -6,8 +6,10 @@ const camelToSnakeKey = (str: string): string =>
 
 export const transformKeysSnakeToCamel = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(transformKeysSnakeToCamel);
-  // A Date is an object with no own enumerable keys: without this guard it
-  // would be rewritten to {}. Preserve it on the way in.
+  // Defensive: no current caller can supply a Date (every one passes
+  // yaml.parse() output, and yaml v2's core schema resolves timestamps to
+  // strings). A Date is an object with no own enumerable keys, so it would be
+  // rewritten to {}; preserve the instance if one ever arrives.
   if (value instanceof Date) return value;
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(

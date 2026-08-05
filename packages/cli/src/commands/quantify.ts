@@ -170,20 +170,6 @@ export default defineCommand({
     }
     const format: OutputFormat = formatMap[formatKey]!;
 
-    // ---- Validate --timezone
-    if (args.timezone) {
-      // Ask the runtime rather than Intl.supportedValuesOf(), which lists only
-      // canonical zones and so rejects usable aliases like
-      // America/Argentina/Buenos_Aires.
-      try {
-        new Intl.DateTimeFormat("en-US", { timeZone: args.timezone });
-      } catch {
-        fatal(
-          `Invalid timezone "${args.timezone}". Use an IANA timezone name (e.g. America/Santiago)`,
-        );
-      }
-    }
-
     // ---- Validate --downsample
     let downsample: number | undefined;
     if (args.downsample !== undefined) {
@@ -246,8 +232,23 @@ export default defineCommand({
       outputProfile = config.output.default;
     }
 
-    // ---- Resolve timezone
+    // ---- Resolve and validate timezone
+    // Validate the resolved value, not just the flag: config.athlete.timezone
+    // is a free-form string in the schema and reaches Intl the same way.
     const timezone = args.timezone ?? config?.athlete?.timezone;
+    if (timezone) {
+      // Ask the runtime rather than Intl.supportedValuesOf(), which lists only
+      // canonical zones and so rejects usable aliases like
+      // America/Argentina/Buenos_Aires.
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+      } catch {
+        fatal(
+          `Invalid timezone "${timezone}". Use an IANA timezone name (e.g. America/Santiago)`,
+        );
+      }
+    }
+
     let prescribedRunOverride:
       | { overrideDate: string }
       | { overrideLabel: string }
